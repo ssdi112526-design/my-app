@@ -1,0 +1,141 @@
+.finances-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.finances-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.finances-head h2 {
+  margin: 0;
+  font-size: clamp(24px, 4vw, 30px);
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.finances-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.finances-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-size: 13px;
+}
+
+.finances-stat strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.finances-search {
+  position: relative;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.finances-search__icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.finances-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px 10px 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.finances-search input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.finances-page .finances-sheet.company-table-wrap,
+.finances-page .finances-sheet.cf-excel-sheet {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+  margin-top: 0;
+  overflow: visible;
+}
+
+.finances-page .finances-sheet .table-scroll {
+  overflow: visible;
+  border-radius: 0;
+}
+
+.finances-page .finances-sheet .excel-grid-table {
+  min-width: 0;
+  border-collapse: collapse;
+}
+
+.finances-table th,
+.finances-table td {
+  text-align: center;
+}
+
+.finances-table th:nth-child(2),
+.finances-table td:nth-child(2) {
+  text-align: left;
+}
+
+.finances-page.cf-page .cf-excel-list-table.finances-table th:first-child,
+.finances-page.cf-page .cf-excel-list-table.finances-table td:first-child {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  padding-left: 6px;
+  padding-right: 6px;
+  font-size: 12px;
+}
+
+.finances-row {
+  transition: background 0.15s ease;
+}
+
+.finances-row:hover td {
+  background: #e3f2fd !important;
+}
+
+.finances-bank-name {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+@media (max-width: 640px) {
+  .finances-page .finances-sheet {
+    padding: 0;
+  }
+
+  .finances-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

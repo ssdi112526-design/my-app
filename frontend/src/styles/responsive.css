@@ -1,0 +1,76 @@
+/* Global responsive helpers */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+.table-scroll,
+.users-table-wrap,
+.reports-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .users-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .users-actions .btn,
+  .users-actions button,
+  .users-actions a {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .table-data-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-data-toolbar__actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-table-excel,
+  .btn-table-print {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 14px;
+  }
+
+  .auth-container {
+    padding: 14px;
+    align-items: flex-start;
+    padding-top: 20px;
+  }
+
+  .auth-box {
+    padding: 22px 18px;
+  }
+
+  .auth-box h2 {
+    font-size: 26px;
+  }
+}

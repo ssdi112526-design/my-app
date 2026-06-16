@@ -1,0 +1,604 @@
+/* SSDI Plans — matches repo CRM theme (#2563eb primary) */
+
+.ssdi-plans-page {
+  --plan-primary: #2563eb;
+  --plan-primary-hover: #1d4ed8;
+  --plan-primary-light: #eff6ff;
+  --plan-primary-border: #93c5fd;
+  --plan-border: #e5e7eb;
+  --plan-card-bg: #ffffff;
+  --plan-text: #111827;
+  --plan-muted: #6b7280;
+
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+}
+
+.ssdi-plans-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.ssdi-plans-header h2 {
+  margin: 0 0 8px;
+  font-size: clamp(22px, 3vw, 26px);
+  font-weight: 700;
+  color: var(--plan-text);
+  letter-spacing: -0.02em;
+}
+
+.ssdi-plans-header .muted {
+  margin: 0;
+  color: var(--plan-muted);
+  font-size: 15px;
+  max-width: 520px;
+  line-height: 1.55;
+}
+
+.ssdi-plans-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #fff;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+/* Plan cards grid */
+.ssdi-plans-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-bottom: 40px;
+  width: 100%;
+  align-items: stretch;
+  border: none;
+  background: transparent;
+}
+
+@media (min-width: 640px) {
+  .ssdi-plans-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .ssdi-plans-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ssdi-plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  min-width: 0;
+  padding: 24px 22px 22px;
+  background: var(--plan-card-bg);
+  border: 1px solid var(--plan-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.ssdi-plan-card:hover {
+  border-color: var(--plan-primary-border);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+  transform: translateY(-2px);
+}
+
+.ssdi-plan-card.is-featured {
+  border-color: var(--plan-primary-border);
+  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.15);
+}
+
+.ssdi-plan-card.is-selected {
+  background: var(--plan-primary-light) !important;
+  border-color: var(--plan-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  z-index: 1;
+}
+
+.ssdi-plan-card.is-selected:hover {
+  background: #dbeafe !important;
+}
+
+.ssdi-plan-selected-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--plan-primary);
+  color: #fff;
+}
+
+.ssdi-plans-selected-banner {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  font-size: 14px;
+  color: #1e40af;
+}
+
+.ssdi-plans-selected-banner strong {
+  font-weight: 700;
+}
+
+.ssdi-plans-table .is-col-highlight {
+  background: var(--plan-primary-light);
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.ssdi-plan-card-top {
+  flex-shrink: 0;
+  margin-bottom: 20px;
+}
+
+.ssdi-plan-name {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--plan-text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.ssdi-plan-price-line {
+  margin: 0 0 8px;
+  line-height: 1.3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 4px;
+}
+
+.ssdi-plan-price {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--plan-primary);
+}
+
+.ssdi-plan-price-suffix {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--plan-muted);
+}
+
+.ssdi-plan-billing-note {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--plan-muted);
+  line-height: 1.4;
+}
+
+.ssdi-plan-limit-line {
+  margin: 0;
+  font-size: 14px;
+  color: var(--plan-muted);
+  line-height: 1.45;
+}
+
+.ssdi-plan-card-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 24px;
+}
+
+.ssdi-plan-includes {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--plan-text);
+  line-height: 1.4;
+}
+
+.ssdi-plan-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+}
+
+.ssdi-plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.45;
+}
+
+.ssdi-plan-features li:last-child {
+  margin-bottom: 0;
+}
+
+.ssdi-plan-check {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  color: var(--plan-primary);
+  stroke-width: 2.5px;
+}
+
+.ssdi-plan-features li span {
+  min-width: 0;
+  flex: 1;
+}
+
+/* CTA — matches primary-page-btn */
+.ssdi-plan-cta {
+  margin-top: auto;
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ssdi-plan-cta.primary {
+  background: var(--plan-primary);
+  color: #fff;
+  border-color: var(--plan-primary-hover);
+}
+
+.ssdi-plan-cta.primary:hover {
+  background: var(--plan-primary-hover);
+  border-color: #1e40af;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+/* Comparison table */
+.ssdi-plans-comparison {
+  background: #fff;
+  border: 1px solid var(--plan-border);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+.ssdi-plans-comparison h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--plan-text);
+}
+
+.ssdi-plans-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  border: 1px solid var(--plan-border);
+  border-radius: 10px;
+}
+
+.ssdi-plans-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.ssdi-plans-table th,
+.ssdi-plans-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--plan-border);
+  font-size: 14px;
+}
+
+.ssdi-plans-table th {
+  font-weight: 600;
+  color: var(--plan-text);
+  background: #f8fafc;
+}
+
+.ssdi-plans-table td {
+  color: #374151;
+  background: #fff;
+}
+
+.ssdi-plans-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ssdi-plans-footer-note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Companies search & filter */
+.ssdi-plans-companies {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid #d4d4d0;
+}
+
+.ssdi-plans-companies-head {
+  margin-bottom: 20px;
+}
+
+.ssdi-plans-companies-head h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.ssdi-plans-companies-head .muted {
+  margin: 0;
+  font-size: 14px;
+  color: #6b6b6b;
+}
+
+.ssdi-plans-search-panel {
+  background: #fff;
+  border: 1px solid #d4d4d0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.ssdi-plans-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid #d4d4d0;
+  border-radius: 10px;
+  background: #fafaf8;
+  margin-bottom: 16px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ssdi-plans-search-bar:focus-within {
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+  background: #fff;
+}
+
+.ssdi-plans-search-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: #888;
+}
+
+.ssdi-plans-search-bar input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 14px;
+  color: #1a1a1a;
+  outline: none;
+}
+
+.ssdi-plans-search-bar input::placeholder {
+  color: #9ca3af;
+}
+
+.ssdi-plans-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .ssdi-plans-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .ssdi-plans-filter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .ssdi-plans-filter-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: end;
+  }
+}
+
+.ssdi-plans-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ssdi-plans-filter-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #444;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ssdi-plans-filter-field input,
+.ssdi-plans-filter-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d4d4d0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.ssdi-plans-filter-field input:focus,
+.ssdi-plans-filter-field select:focus {
+  outline: none;
+  border-color: #1a1a1a;
+  box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.08);
+}
+
+.ssdi-plans-filter-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.ssdi-plans-clear-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #d4d4d0;
+  background: #f3f3f1;
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ssdi-plans-clear-btn:hover:not(:disabled) {
+  background: #e8e8e4;
+}
+
+.ssdi-plans-clear-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ssdi-plans-results-count {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #6b6b6b;
+}
+
+.ssdi-plans-companies-table-wrap {
+  border: 1px solid #d4d4d0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.ssdi-plans-companies-table {
+  min-width: 720px;
+}
+
+.ssdi-plans-loading,
+.ssdi-plans-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #6b6b6b;
+  font-size: 14px;
+}
+
+.ssdi-plans-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ssdi-plans-status--active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ssdi-plans-status--inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.ssdi-plans-view-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.ssdi-plans-view-link:hover {
+  text-decoration: underline;
+}
+
+/* Mobile: stacked cards with full borders */
+@media (max-width: 639px) {
+  .ssdi-plans-page {
+    padding: 16px;
+  }
+
+  .ssdi-plans-header {
+    margin-bottom: 20px;
+  }
+
+  .ssdi-plans-grid {
+    gap: 0;
+    border-radius: 12px;
+  }
+
+  .ssdi-plan-card {
+    padding: 22px 18px 20px;
+    border-bottom: 1px solid #d4d4d0 !important;
+    border-right: none !important;
+  }
+
+  .ssdi-plan-card:last-child {
+    border-bottom: none !important;
+  }
+
+  .ssdi-plan-card:hover {
+    background: #f3f3f1;
+  }
+
+  .ssdi-plans-comparison {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ssdi-plans-page {
+    padding: 14px;
+  }
+
+  .ssdi-plan-name {
+    font-size: 20px;
+  }
+
+  .ssdi-plan-cta {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+}

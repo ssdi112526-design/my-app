@@ -1,0 +1,609 @@
+/* Header: title + ID Card — one row, space-between (mobile / tablet / desktop) */
+.profile-page .create-company-header.profile-page__header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+
+.profile-page .profile-page__header h2 {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: clamp(1.2rem, 3.5vw, 1.625rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: #0f172a;
+}
+
+.profile-page .profile-page__id-card-link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.profile-page.create-company-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.profile-page .create-company-form.profile-page__form,
+.profile-page .profile-page__form.create-company-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.profile-page .form-grid.two-column {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Fill main area so Save stays at the bottom; stick while scrolling */
+.profile-page.create-company-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 200px);
+  padding-bottom: 0;
+}
+
+.profile-page .create-company-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 16px;
+  min-height: 0;
+}
+
+.profile-page .profile-page__form {
+  flex: 1 0 auto;
+}
+
+.profile-page .profile-page__photo-slot {
+  width: 100%;
+  max-width: 280px;
+}
+
+.profile-page .create-company-actions--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  margin-top: auto;
+  flex-shrink: 0;
+  padding: 16px 0 20px;
+  background: linear-gradient(
+    180deg,
+    rgba(245, 247, 251, 0) 0%,
+    #f5f7fb 20%,
+    #f5f7fb 100%
+  );
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.profile-page .create-company-actions--sticky .primary-page-btn {
+  min-width: 160px;
+}
+
+.profile-page .create-company-section {
+  padding: 20px 0;
+}
+
+.profile-page .profile-admin-uploads-row {
+  width: 100%;
+  max-width: 100%;
+}
+
+.profile-page .create-company-photos-grid--single {
+  width: 100%;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 280px);
+}
+
+@media (max-width: 768px) {
+  .profile-page .create-company-photos-grid--single {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-page .create-company-photos-grid--single .create-company-photos-grid__spacer {
+  display: none;
+}
+
+.profile-page .create-company-section__head {
+  margin-bottom: 16px;
+}
+
+.profile-page .profile-section-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.profile-page .profile-address-grid,
+.profile-page .profile-contact-grid {
+  gap: 18px;
+}
+
+.profile-page .form-group--dob {
+  margin-bottom: 4px;
+}
+
+.profile-page .form-group--dob .field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+}
+
+.profile-page .profile-contact-grid .form-group--dob .manual-dob-fields,
+.profile-page .profile-contact-grid .form-group--dob .manual-dob-box {
+  max-width: 100%;
+}
+
+.profile-page .manual-dob-fields {
+  width: 100%;
+  max-width: 320px;
+}
+
+.profile-page .manual-dob-box {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  width: 100%;
+  max-width: 320px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.profile-page .manual-dob-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.profile-page .manual-dob-segment {
+  padding: 10px 0;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.profile-page .manual-dob-segment--day,
+.profile-page .manual-dob-segment--month {
+  width: 2.5ch;
+  min-width: 32px;
+}
+
+.profile-page .manual-dob-segment--year {
+  width: 5ch;
+  min-width: 56px;
+}
+
+.profile-page .manual-dob-sep {
+  flex-shrink: 0;
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 1;
+  color: #94a3b8;
+}
+
+.profile-page .state-combobox-input-wrap input {
+  min-height: 44px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+
+.profile-page .profile-password-section .create-company-section__head {
+  margin-bottom: 14px;
+}
+
+.profile-page .profile-password-grid {
+  gap: 18px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.profile-page .profile-password-grid .field-hint {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .profile-page.create-company-page {
+    min-height: calc(100dvh - 160px);
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .profile-page .create-company-header.profile-page__header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .profile-page .profile-page__id-card-link {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .profile-page .profile-page__form {
+    padding: 8px 14px 20px;
+    border-radius: 12px;
+  }
+
+  .profile-page .create-company-section {
+    padding: 16px 0;
+  }
+
+  .profile-page .profile-admin-uploads-row,
+  .profile-page .create-company-uploads-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .profile-page .create-company-upload-slot {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .profile-page .manual-dob-fields,
+  .profile-page .manual-dob-box {
+    max-width: 100%;
+  }
+
+  .profile-page .profile-password-grid {
+    padding: 14px;
+  }
+
+  .profile-page .directors-field .director-row {
+    flex-wrap: wrap;
+  }
+
+  .profile-page .create-company-actions--sticky {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .profile-page .create-company-actions--sticky .primary-page-btn {
+    width: 100%;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .profile-page .form-grid.two-column {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .profile-page .profile-admin-uploads-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 769px) {
+  .profile-page.create-company-page {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  .profile-page .profile-page__form {
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 28px 28px;
+  }
+
+  .profile-page .profile-page__header h2 {
+    font-size: 26px;
+  }
+}
+
+.profile-lock-banner,
+.profile-pending-banner,
+.profile-info-banner {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.profile-lock-banner {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.profile-pending-banner {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+}
+
+.profile-info-banner {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.profile-photo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.profile-photo-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profile-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-photo-preview--user {
+  width: 96px;
+  height: 120px;
+  border-radius: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 2px solid #334155;
+}
+
+.profile-photo-field .profile-photo-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.profile-upload-field .profile-photo-preview:not(.profile-photo-preview--user) {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.profile-upload-field input[type="file"] {
+  max-width: 280px;
+}
+
+.apk-register-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.apk-register-option {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  background: #f8fafc;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.apk-register-option:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+}
+
+.apk-register-option__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.apk-register-option strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.apk-register-option p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .apk-register-option {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .apk-register-option__icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+}
+
+
+.directors-field .director-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.directors-field .director-row input {
+  flex: 1;
+}
+
+.directors-field .director-row__remove {
+  flex-shrink: 0;
+  padding: 10px 14px;
+}
+
+.directors-field .director-row__add {
+  margin-top: 4px;
+}
+
+.manual-dob-fields {
+  width: 100%;
+}
+
+.manual-dob-box {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.manual-dob-box:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.manual-dob-fields--disabled .manual-dob-box {
+  background: #f9fafb;
+  cursor: not-allowed;
+}
+
+.manual-dob-fields--disabled .manual-dob-segment {
+  cursor: not-allowed;
+}
+
+.manual-dob-segment {
+  border: none;
+  background: transparent;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.manual-dob-segment:focus {
+  outline: none;
+}
+
+.manual-dob-segment::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.manual-dob-segment--day,
+.manual-dob-segment--month {
+  width: 2.4ch;
+  min-width: 30px;
+  flex: 0 0 auto;
+}
+
+.manual-dob-segment--year {
+  width: 4.8ch;
+  min-width: 52px;
+  flex: 0 0 auto;
+}
+
+.manual-dob-sep {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 15px;
+  font-weight: 600;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Contact row: compact DOB matching repo admin (SSDI create + profile) */
+.profile-contact-grid .form-group--dob .manual-dob-fields {
+  width: 100%;
+  max-width: 100%;
+}
+
+.profile-contact-grid .form-group--dob .manual-dob-box {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+  height: 44px;
+  padding: 0 10px;
+}
+
+.profile-contact-grid .form-group--dob .manual-dob-segment {
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 44px;
+  height: 44px;
+}
+
+.profile-contact-grid .form-group--dob .manual-dob-segment--day,
+.profile-contact-grid .form-group--dob .manual-dob-segment--month {
+  width: 2ch;
+  min-width: 26px;
+}
+
+.profile-contact-grid .form-group--dob .manual-dob-segment--year {
+  width: 4.5ch;
+  min-width: 46px;
+}
+
+.profile-contact-grid .form-group--dob .manual-dob-sep {
+  padding: 0 3px;
+  font-size: 13px;
+  line-height: 44px;
+}
+
+.profile-contact-grid .form-group--dob .field-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+}

@@ -1,0 +1,160 @@
+.store-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.store-badges__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+  letter-spacing: 0.01em;
+}
+
+.store-badges--light .store-badges__title {
+  color: rgba(248, 250, 252, 0.9);
+}
+
+.store-badges__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Shared store button — fixed icon box + text column */
+.store-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  height: 50px;
+  min-width: 168px;
+  padding: 0 14px 0 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.store-badge-btn:hover {
+  transform: translateY(-2px);
+}
+
+.store-badge-btn__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.store-badge-icon-svg {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.store-badge-fa-apple {
+  display: block;
+  font-size: 28px;
+  line-height: 1;
+  width: 32px;
+  text-align: center;
+}
+
+.store-badge-btn__copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  min-width: 0;
+  line-height: 1.1;
+}
+
+.store-badge-btn__eyebrow {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  white-space: nowrap;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+
+.store-badge-btn__name {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  line-height: 1.15;
+}
+
+/* Dark — landing page */
+.store-badge-btn--dark {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
+}
+
+.store-badge-btn--dark:hover {
+  background: #1e293b;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.28);
+}
+
+.store-badge-btn--dark .store-badge-btn__icon {
+  color: #fff;
+}
+
+/* Light — footer on dark background */
+.store-badge-btn--light {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.store-badge-btn--light:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.store-badges--footer {
+  align-items: flex-start;
+  margin-top: 8px;
+}
+
+.store-badges--footer .store-badges__row {
+  justify-content: flex-start;
+}
+
+@media (min-width: 480px) {
+  .store-badge-btn {
+    height: 52px;
+    min-width: 172px;
+    padding: 0 16px 0 12px;
+  }
+
+  .store-badge-btn__name {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .store-badges__row {
+    flex-direction: column;
+    width: 100%;
+    max-width: 220px;
+  }
+
+  .store-badge-btn {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

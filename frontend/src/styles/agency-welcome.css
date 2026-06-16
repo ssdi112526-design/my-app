@@ -1,0 +1,107 @@
+.agency-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.agency-welcome__lead {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agency-welcome__prefix {
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.agency-welcome__name {
+  font-weight: 700;
+}
+
+.agency-welcome__code {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin: 0;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.88;
+  cursor: pointer;
+  text-align: right;
+}
+
+.agency-welcome__code:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.agency-welcome__copy {
+  display: inline-flex;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+.sidebar-brand {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-brand .agency-welcome__lead {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.layout-mobile-brand {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.layout-mobile-brand .agency-welcome {
+  min-width: 0;
+}
+
+.layout-mobile-brand .agency-welcome__lead {
+  white-space: nowrap;
+}
+
+/* Desktop / web: welcome + agency + code only in main header */
+@media (min-width: 769px) {
+  .sidebar-head--repo {
+    display: none;
+  }
+
+  .sidebar-brand--mobile-only {
+    display: none;
+  }
+}
+
+.agency-welcome--header {
+  font-size: 15px;
+}
+
+.agency-welcome--header .agency-welcome__lead {
+  white-space: nowrap;
+}
+
+.agency-welcome--header .agency-welcome__code {
+  font-size: 15px;
+  letter-spacing: 0.1em;
+}

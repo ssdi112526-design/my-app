@@ -1,0 +1,73 @@
+.brand-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+}
+
+.brand-fast {
+  color: inherit;
+}
+
+.brand-recovery {
+  background: linear-gradient(90deg, #60a5fa, #2563eb, #38bdf8);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: brand-shimmer 5s linear infinite;
+}
+
+.brand-suffix {
+  margin-left: 0.35em;
+  font-size: 0.55em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  align-self: center;
+}
+
+.brand-wordmark--on-dark .brand-fast {
+  color: #f8fafc;
+}
+
+.brand-wordmark--on-dark .brand-recovery {
+  background: linear-gradient(90deg, #93c5fd, #60a5fa, #38bdf8);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.brand-wordmark--lg {
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.brand-wordmark--header {
+  font-size: 20px;
+}
+
+.brand-wordmark--sidebar {
+  font-size: 17px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.brand-wordmark--sidebar .brand-suffix {
+  margin-left: 0;
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+@keyframes brand-shimmer {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
