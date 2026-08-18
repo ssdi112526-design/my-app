@@ -1,0 +1,9 @@
+{
+  "name": "my-app",
+  "private": true,
+  "description": "Fast Recovery monorepo. Render/production start the API from backend/.",
+  "scripts": {
+    "start": "npm start --prefix backend",
+    "postinstall": "npm install --prefix backend --omit=dev"
+  }
+}
