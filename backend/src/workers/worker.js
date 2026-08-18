@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("../db/mongooseAlias");
 
 const { Worker } = require("bullmq");
 const connectDB = require("../config/db");
@@ -19,7 +20,7 @@ async function startWorker() {
     process.exit(1);
   }
 
-  await connectDB(process.env.MONGO_URI);
+  await connectDB(process.env.DATABASE_URL);
 
   const worker = new Worker(
     UPLOAD_QUEUE_NAME,

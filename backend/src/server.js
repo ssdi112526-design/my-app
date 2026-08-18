@@ -1,4 +1,5 @@
 require("dotenv").config();
+require("./db/mongooseAlias");
 
 const http = require("http");
 const app = require("./app");
@@ -9,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 
 (async () => {
   try {
-    await connectDB(process.env.MONGO_URI);
+    await connectDB(process.env.DATABASE_URL);
 
     const server = http.createServer(app);
     initSocket(server);

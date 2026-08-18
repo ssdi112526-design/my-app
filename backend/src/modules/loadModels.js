@@ -1,0 +1,27 @@
+require("./users/user.model");
+require("./companies/company.model");
+require("./companies/pendingRepoAdminPhoneOtp.model");
+require("./plans/plan.model");
+require("./subscriptions/subscription.model");
+require("./payments/payment.model");
+require("./repoCases/repoCase.model");
+require("./repoCases/vehicleLoadedNote.model");
+require("./uploads/uploadBatch.model");
+require("./confirmations/confirmation.model");
+require("./bank/bank.model");
+require("./bank/bankRecord.model");
+require("./bank/bankRepoLink.model");
+require("./bank/bankUploadBatch.model");
+require("./bank/pendingBankInvite.model");
+require("./bank/dataUsageLog.model");
+require("./notifications/notification.model");
+require("./blacklist/blacklist.model");
+require("./feedbacks/feedback.model");
+require("./finances/financeEntry.model");
+require("./otpLogs/otpLog.model");
+require("./auditLogs/auditLog.model");
+require("./locationSnapshots/locationSnapshot.model");
+require("./companyBanks/companyBank.model");
+require("./repoUsers/userPhoneOtp.model");
+
+module.exports = require("../db/model").models;

@@ -26,22 +26,13 @@
 ## Start commands
 
 ```bash
-export PATH="$HOME/.local/node/bin:$PATH"
-
-# Terminal 1 — backend (needs MongoDB)
-cd /Users/chandra/my-app/backend && npm start
+# Terminal 1 — backend (needs PostgreSQL via DATABASE_URL)
+cd backend && npm start
 
 # Terminal 2 — frontend
-cd /Users/chandra/my-app/frontend && npm start
+cd frontend && npm start
 ```
 
-## MongoDB required
+## PostgreSQL required
 
-Backend will not start until MongoDB is reachable. Use **Atlas** in `backend/.env` or start local MongoDB:
-
-```bash
-export PATH="$HOME/.homebrew/bin:$PATH"
-brew tap mongodb/brew
-brew install mongodb-community@7.0
-brew services start mongodb-community@7.0
-```
+Backend will not start until PostgreSQL is reachable. Set `DATABASE_URL` in `backend/.env` (Render External URL from this machine).

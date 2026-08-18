@@ -1,5 +1,5 @@
 /**
- * MongoDB Atlas storage maintenance (Excel files stay on S3).
+ * PostgreSQL storage maintenance (Excel files stay on S3).
  *
  *   node scripts/db-maintenance.js report
  *   node scripts/db-maintenance.js cleanup --strip-excel-fields
@@ -7,6 +7,7 @@
  *   node scripts/db-maintenance.js cleanup --full
  */
 require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
+require("../src/db/mongooseAlias");
 const mongoose = require("mongoose");
 
 const RepoCase = require("../src/modules/repoCases/repoCase.model");
@@ -18,8 +19,7 @@ const OtpLog = require("../src/modules/otpLogs/otpLog.model");
 const Confirmation = require("../src/modules/confirmations/confirmation.model");
 
 async function report() {
-  const db = mongoose.connection.db;
-  const stats = await db.stats();
+  const stats = await mongoose.connection.db.stats();
   console.log("\n=== Database storage ===");
   console.log(`Data size: ${(stats.dataSize / 1024 / 1024).toFixed(2)} MB`);
   console.log(`Index size: ${(stats.indexSize / 1024 / 1024).toFixed(2)} MB`);
@@ -120,13 +120,13 @@ async function main() {
     allCases: process.argv.includes("--all-cases"),
   };
 
-  if (!process.env.MONGO_URI) {
-    console.error("MONGO_URI missing in backend/.env");
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL missing in backend/.env");
     process.exit(1);
   }
 
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log("Connected to MongoDB\n");
+  await mongoose.connect(process.env.DATABASE_URL);
+  console.log("Connected to PostgreSQL\n");
 
   try {
     if (cmd === "report") {
@@ -151,14 +151,5 @@ async function main() {
 
 main().catch((err) => {
   console.error(err.message);
-  if (/space quota|8000/i.test(String(err.message))) {
-    console.error(`
-Atlas is still full — scripts cannot delete until you free space once in Atlas UI:
-  1. https://cloud.mongodb.com → Browse Collections
-  2. Database repossession_crm → collection repocases → Delete Documents (all) or Drop Collection
-  3. Drop uploadbatches too
-  4. Wait 2 min, then run: node scripts/db-maintenance.js cleanup --light
-`);
-  }
   process.exit(1);
 });

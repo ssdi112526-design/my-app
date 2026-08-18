@@ -30,8 +30,8 @@ AWS_S3_BUCKET=fastrecovery
 # Redis / Upstash (required for queue)
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
 
-# MongoDB — metadata + optional row import
-MONGO_URI=
+# PostgreSQL — metadata + optional row import
+DATABASE_URL=
 
 # false = S3 only (default, saves Atlas space)
 ENABLE_MONGO_IMPORT=false

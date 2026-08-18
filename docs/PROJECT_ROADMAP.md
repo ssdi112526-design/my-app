@@ -63,7 +63,7 @@ This document maps your **full enterprise spec** to what is **already built** in
 
 ```env
 # Existing
-MONGO_URI=
+DATABASE_URL=
 JWT_SECRET=
 
 # Optional new
