@@ -8,6 +8,7 @@ const {
 const {
   buildObjectKey,
   createPresignedPutUrl,
+  uploadBufferToS3,
 } = require("../../utils/s3Storage");
 const {
   cleanValue,
@@ -191,8 +192,7 @@ const presignS3Upload = async (req, res) => {
     const bankName = cleanValue(req.body.bankName);
     const branchName = cleanValue(req.body.branchName);
     const fileName = cleanValue(req.body.fileName) || "upload.xlsx";
-    const contentType =
-      cleanValue(req.body.contentType) || getMimeType(fileName);
+    const contentType = getMimeType(fileName);
 
     if (!bankName || !branchName) {
       return res.status(400).json({
@@ -216,7 +216,7 @@ const presignS3Upload = async (req, res) => {
     });
 
     const key = buildObjectKey(req.user.companyId, batch._id, fileName);
-    const { uploadUrl, bucket, expiresIn } = await createPresignedPutUrl(
+    const { uploadUrl, bucket, expiresIn, contentType: signedType } = await createPresignedPutUrl(
       key,
       contentType
     );
@@ -232,6 +232,7 @@ const presignS3Upload = async (req, res) => {
         bucket,
         key,
         expiresIn,
+        contentType: signedType,
         corsNote:
           "S3 bucket must allow PUT from your app origin (CORS). See backend/docs/S3_CORS.md",
       },
@@ -241,6 +242,42 @@ const presignS3Upload = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+/** Browser CORS fallback: Node uploads the file to the already-presigned S3 key. */
+const proxyS3Upload = async (req, res) => {
+  try {
+    assertS3Required();
+    const batchId = cleanValue(req.body.batchId);
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "File is required." });
+    }
+    if (!batchId) {
+      return res.status(400).json({ success: false, message: "batchId is required." });
+    }
+
+    const batch = await UploadBatch.findOne({
+      _id: batchId,
+      companyId: req.user.companyId,
+    });
+    if (!batch || !batch.storedFilePath) {
+      return res.status(404).json({
+        success: false,
+        message: "Upload batch not found. Presign again.",
+      });
+    }
+
+    await uploadBufferToS3({
+      key: batch.storedFilePath,
+      buffer: req.file.buffer,
+      contentType: req.file.mimetype || getMimeType(req.file.originalname),
+      originalName: req.file.originalname,
+    });
+
+    return res.json({ success: true, data: { batchId: batch._id } });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -576,6 +613,7 @@ module.exports = {
   previewRepoCases,
   uploadRepoCases,
   presignS3Upload,
+  proxyS3Upload,
   completeS3Upload,
   getUploads,
   getUploadById,

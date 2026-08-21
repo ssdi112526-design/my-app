@@ -22,6 +22,12 @@ router.post(
 router.post("/s3/presign", authorize("REPO_ADMIN"), (req, res, next) =>
   controller.presignS3Upload(req, res, next)
 );
+router.post(
+  "/s3/proxy",
+  authorize("REPO_ADMIN"),
+  upload.single("file"),
+  controller.proxyS3Upload
+);
 router.post("/s3/complete", authorize("REPO_ADMIN"), (req, res, next) =>
   controller.completeS3Upload(req, res, next)
 );

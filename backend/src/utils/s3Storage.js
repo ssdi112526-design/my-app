@@ -4,6 +4,7 @@ const {
   GetObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
+  PutBucketCorsCommand,
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -28,6 +29,10 @@ function getS3Client() {
     s3Client = new S3Client({
       region: process.env.AWS_REGION || "us-east-1",
       followRegionRedirects: true,
+      // AWS SDK v3.729+ signs checksum headers by default; browsers cannot send them
+      // on presigned PUTs, which shows up as a CORS/network error in the UI.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -136,20 +141,70 @@ async function deleteObjectsFromS3(keys) {
   return { deleted };
 }
 
+function s3CorsOrigins() {
+  const origins = new Set([
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "https://fastrecovery.in",
+    "https://www.fastrecovery.in",
+  ]);
+  for (const raw of [process.env.FRONTEND_URL, process.env.CORS_ORIGIN]) {
+    String(raw || "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
+      .forEach((o) => origins.add(o.replace(/\/$/, "")));
+  }
+  return [...origins];
+}
+
+/** Allow browser PUT/GET against the bucket from the app origins. */
+async function applyBucketCors() {
+  if (!isS3Configured()) return { applied: false, reason: "S3 not configured" };
+  const client = getS3Client();
+  const origins = s3CorsOrigins();
+  await client.send(
+    new PutBucketCorsCommand({
+      Bucket: process.env.AWS_S3_BUCKET,
+      CORSConfiguration: {
+        CORSRules: [
+          {
+            AllowedHeaders: ["*"],
+            AllowedMethods: ["GET", "PUT", "HEAD", "POST"],
+            AllowedOrigins: origins,
+            ExposeHeaders: ["ETag", "x-amz-request-id", "x-amz-id-2"],
+            MaxAgeSeconds: 3000,
+          },
+        ],
+      },
+    })
+  );
+  return { applied: true, origins };
+}
+
 /** Browser uploads file directly to S3 (fast — skips Node server). */
 async function createPresignedPutUrl(key, contentType, expiresIn = 3600) {
   const client = getS3Client();
   const bucket = process.env.AWS_S3_BUCKET;
+  const mime = contentType || "application/octet-stream";
 
   const command = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
-    ContentType: contentType || "application/octet-stream",
+    ContentType: mime,
   });
 
-  const uploadUrl = await getSignedUrl(client, command, { expiresIn });
+  const uploadUrl = await getSignedUrl(client, command, {
+    expiresIn,
+    unhoistableHeaders: new Set([
+      "x-amz-checksum-crc32",
+      "x-amz-checksum-crc32c",
+      "x-amz-sdk-checksum-algorithm",
+    ]),
+  });
 
-  return { uploadUrl, bucket, key, expiresIn };
+  return { uploadUrl, bucket, key, expiresIn, contentType: mime };
 }
 
 async function getObjectBufferFromS3(key) {
@@ -174,4 +229,6 @@ module.exports = {
   getObjectBufferFromS3,
   deleteObjectFromS3,
   deleteObjectsFromS3,
+  applyBucketCors,
+  s3CorsOrigins,
 };

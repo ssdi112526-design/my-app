@@ -200,6 +200,9 @@ class Query {
 
     if (include.length) {
       if (!include.includes("_id") && !exclude.has("_id")) include.unshift("_id");
+      for (const name of plus) {
+        if (!include.includes(name)) include.push(name);
+      }
       return include.map(qident).join(", ");
     }
 

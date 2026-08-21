@@ -9,6 +9,9 @@
     "check:db": "node -r ./src/db/mongooseAlias.js scripts/check-db.js",
     "migrate:schema": "node -r ./src/db/mongooseAlias.js scripts/write-pg-schema.js",
     "migrate:mongo": "node -r ./src/db/mongooseAlias.js scripts/migrate-mongo-to-pg.js",
+    "seed:demo": "node -r ./src/db/mongooseAlias.js scripts/seed-demo-data.js",
+    "seed:companies": "node -r ./src/db/mongooseAlias.js scripts/seed-100-companies.js",
+    "seed:agents": "node -r ./src/db/mongooseAlias.js scripts/seed-2000-agents.js",
     "worker": "node -r ./src/db/mongooseAlias.js src/workers/worker.js",
     "worker:dev": "nodemon -r ./src/db/mongooseAlias.js src/workers/worker.js"
   },

@@ -1,6 +1,12 @@
 const router = require("express").Router();
+const multer = require("multer");
 const { protect, authorize, requireAuth } = require("../../middlewares/auth");
 const c = require("./bank.controller");
+
+const excelUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 80 * 1024 * 1024 },
+});
 
 // ── Public ──
 router.post("/register", c.selfRegister);
@@ -13,6 +19,12 @@ router.post(
   "/uploads/presign",
   ...requireAuth(["BANK_ADMIN", "BANK_PERSON"]),
   c.presignBankUpload
+);
+router.post(
+  "/uploads/proxy",
+  ...requireAuth(["BANK_ADMIN", "BANK_PERSON"]),
+  excelUpload.single("file"),
+  c.proxyBankUpload
 );
 router.post(
   "/uploads/complete",

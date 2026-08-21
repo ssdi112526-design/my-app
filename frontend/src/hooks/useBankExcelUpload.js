@@ -57,16 +57,27 @@ export function useBankExcelUpload({ onComplete } = {}) {
         contentType:
           file.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      const { batchId, uploadUrl } = presignRes?.data?.data || {};
+      const { batchId, uploadUrl, contentType } = presignRes?.data?.data || {};
       if (!batchId || !uploadUrl) {
         throw new Error("Server did not return upload URL. Check S3 config.");
       }
 
       setUploadStage("uploading");
       setUploadProgress(0);
-      await uploadFileToPresignedUrl(file, uploadUrl, (loaded, total) => {
-        setUploadProgress(Math.round((loaded / total) * 100));
-      });
+      const mime =
+        contentType ||
+        file.type ||
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+      try {
+        await uploadFileToPresignedUrl(file, uploadUrl, (loaded, total) => {
+          setUploadProgress(Math.round((loaded / total) * 100));
+        }, mime);
+      } catch {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("batchId", batchId);
+        await bankService.proxyUpload(formData);
+      }
 
       setUploadStage("processing");
       await bankService.completeUpload({ batchId });

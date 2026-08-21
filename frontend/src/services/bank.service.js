@@ -9,6 +9,11 @@ const bankService = {
 
   // ── S3 Upload pipeline ──
   presignUpload: (data) => api.post("/bank/uploads/presign", data),
+  proxyUpload: (formData) =>
+    api.post("/bank/uploads/proxy", formData, {
+      timeout: 0,
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   completeUpload: (data) => api.post("/bank/uploads/complete", data),
   listUploads: () => api.get("/bank/uploads"),
   getUploadBatch: (batchId) => api.get(`/bank/uploads/${batchId}`),

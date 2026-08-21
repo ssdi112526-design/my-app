@@ -11,7 +11,7 @@ const User = require("../users/user.model");
 const { hashPassword, comparePassword } = require("../../utils/hash");
 const { signToken } = require("../../utils/jwt");
 const { ok, fail } = require("../../utils/response");
-const { createPresignedPutUrl } = require("../../utils/s3Storage");
+const { createPresignedPutUrl, uploadBufferToS3 } = require("../../utils/s3Storage");
 const { isRedisConfigured } = require("../../config/redis");
 const { enqueueUploadJob } = require("../../queues/uploadQueue");
 const { processBankUploadJob } = require("../../services/bankRecordProcessor.service");
@@ -1096,7 +1096,7 @@ module.exports.runExpiryCheck = async (req, res, next) => {
 /** POST /api/bank/uploads/presign — Step 1: get presigned S3 URL */
 module.exports.presignBankUpload = async (req, res, next) => {
   try {
-    const { fileName, contentType } = req.body;
+    const { fileName } = req.body;
     const bankId = req.user.bankId;
     if (!bankId) return fail(res, 403, "No bank context");
     if (!fileName) return fail(res, 400, "fileName is required");
@@ -1109,13 +1109,38 @@ module.exports.presignBankUpload = async (req, res, next) => {
     });
 
     const s3Key = buildBankS3Key(bankId, batch._id, fileName);
-    const mime = contentType || getMime(fileName);
-    const { uploadUrl } = await createPresignedPutUrl(s3Key, mime);
+    const mime = getMime(fileName);
+    const { uploadUrl, contentType: signedType } = await createPresignedPutUrl(s3Key, mime);
 
     batch.storedFilePath = s3Key;
     await batch.save();
 
-    return ok(res, { batchId: batch._id, uploadUrl, s3Key }, "Presigned URL ready");
+    return ok(res, { batchId: batch._id, uploadUrl, s3Key, contentType: signedType }, "Presigned URL ready");
+  } catch (e) {
+    next(e);
+  }
+};
+
+/** POST /api/bank/uploads/proxy — CORS fallback: server PUTs the file to S3 */
+module.exports.proxyBankUpload = async (req, res, next) => {
+  try {
+    const bankId = req.user.bankId;
+    const batchId = req.body.batchId;
+    if (!bankId) return fail(res, 403, "No bank context");
+    if (!req.file) return fail(res, 400, "File is required");
+    if (!batchId) return fail(res, 400, "batchId is required");
+
+    const batch = await BankUploadBatch.findOne({ _id: batchId, bankId });
+    if (!batch || !batch.storedFilePath) return fail(res, 404, "Batch not found — presign again");
+
+    await uploadBufferToS3({
+      key: batch.storedFilePath,
+      buffer: req.file.buffer,
+      contentType: req.file.mimetype || getMime(batch.fileName),
+      originalName: req.file.originalname || batch.fileName,
+    });
+
+    return ok(res, { batchId: batch._id }, "Uploaded to S3");
   } catch (e) {
     next(e);
   }

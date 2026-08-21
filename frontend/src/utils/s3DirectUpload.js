@@ -1,9 +1,13 @@
 /**
  * PUT file to S3 presigned URL with upload progress.
  */
-export function uploadFileToPresignedUrl(file, uploadUrl, onProgress) {
+export function uploadFileToPresignedUrl(file, uploadUrl, onProgress, contentType) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    const mime =
+      contentType ||
+      file.type ||
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     xhr.upload.addEventListener("progress", (event) => {
       if (event.lengthComputable && typeof onProgress === "function") {
@@ -32,11 +36,7 @@ export function uploadFileToPresignedUrl(file, uploadUrl, onProgress) {
     });
 
     xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader(
-      "Content-Type",
-      file.type ||
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    );
+    xhr.setRequestHeader("Content-Type", mime);
     xhr.send(file);
   });
 }

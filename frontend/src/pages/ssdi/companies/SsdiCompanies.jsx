@@ -43,7 +43,7 @@ export default function SsdiCompanies() {
         if (showFullLoader) setLoading(true);
         if (!silent) setError("");
 
-        const params = { page: 1, limit: 50 };
+        const params = { page: 1, limit: 200 };
         if (debouncedQuery.trim()) params.q = debouncedQuery.trim();
 
         const res = await companyService.getCompanies(auth.token, params);

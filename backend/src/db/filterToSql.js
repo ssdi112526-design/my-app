@@ -85,18 +85,18 @@ function compilePredicate(field, value, schema, params) {
           params.push(v);
           parts.push(`(${col} IS DISTINCT FROM $${params.length})`);
         }
-      } else if (op === "$gt") {
-        params.push(v);
-        parts.push(`${col} > $${params.length}`);
-      } else if (op === "$gte") {
-        params.push(v);
-        parts.push(`${col} >= $${params.length}`);
-      } else if (op === "$lt") {
-        params.push(v);
-        parts.push(`${col} < $${params.length}`);
-      } else if (op === "$lte") {
-        params.push(v);
-        parts.push(`${col} <= $${params.length}`);
+      } else if (op === "$gt" || op === "$gte" || op === "$lt" || op === "$lte") {
+        const sqlOp = { $gt: ">", $gte: ">=", $lt: "<", $lte: "<=" }[op];
+        const isJsonbText = col.includes("#>>");
+        if (v instanceof Date && isJsonbText) {
+          params.push(v.toISOString());
+          parts.push(
+            `(NULLIF(${col}, ''))::timestamptz ${sqlOp} $${params.length}::timestamptz`
+          );
+        } else {
+          params.push(v);
+          parts.push(`${col} ${sqlOp} $${params.length}`);
+        }
       } else if (op === "$in") {
         const list = Array.isArray(raw) ? raw.map(normalizeValue) : [];
         if (!list.length) {
@@ -183,17 +183,21 @@ function filterToSql(filter, schema, params) {
   return parts.length ? parts.join(" AND ") : "TRUE";
 }
 
+function sortExpr(field) {
+  return String(field).includes(".") ? columnSql(field) : qident(field);
+}
+
 function sortToSql(sort) {
   if (!sort) return "";
   const parts = [];
   if (typeof sort === "string") {
     sort.split(/\s+/).filter(Boolean).forEach((token) => {
-      if (token.startsWith("-")) parts.push(`${qident(token.slice(1))} DESC`);
-      else parts.push(`${qident(token)} ASC`);
+      if (token.startsWith("-")) parts.push(`${sortExpr(token.slice(1))} DESC`);
+      else parts.push(`${sortExpr(token)} ASC`);
     });
   } else {
     for (const [field, dir] of Object.entries(sort)) {
-      parts.push(`${qident(field)} ${Number(dir) < 0 ? "DESC" : "ASC"}`);
+      parts.push(`${sortExpr(field)} ${Number(dir) < 0 ? "DESC" : "ASC"}`);
     }
   }
   return parts.length ? ` ORDER BY ${parts.join(", ")}` : "";

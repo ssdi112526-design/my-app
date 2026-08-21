@@ -119,6 +119,17 @@ export const repoCaseService = {
     return res.data;
   },
 
+  proxyS3Upload: async (formData, token) => {
+    const res = await api.post("/uploads/s3/proxy", formData, {
+      timeout: 0,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return res.data;
+  },
+
   getUploadById: async (id, token) => {
     const res = await api.get(`/uploads/${id}`, {
       headers: {

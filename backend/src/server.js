@@ -36,6 +36,16 @@ const PORT = process.env.PORT || 5000;
         console.log(
           `📦 Upload storage: AWS S3 bucket "${process.env.AWS_S3_BUCKET}" (${process.env.AWS_REGION || "us-east-1"})`
         );
+        const { applyBucketCors } = require("./utils/s3Storage");
+        applyBucketCors()
+          .then((result) => {
+            if (result.applied) {
+              console.log(`📦 S3 CORS allowed origins: ${result.origins.join(", ")}`);
+            }
+          })
+          .catch((err) => {
+            console.warn("⚠️  Could not update S3 bucket CORS:", err.message);
+          });
       } else {
         console.warn("⚠️  AWS S3 not configured — Excel uploads will fail until .env is set.");
       }
