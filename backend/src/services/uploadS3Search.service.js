@@ -549,7 +549,7 @@ function invalidateUploadBatches(companyId, batchIds) {
 
 function isCompanySearchReady(companyId) {
   const entry = companyItemsCache.get(String(companyId));
-  return Boolean(entry?.items?.length && entry.expiresAt > Date.now());
+  return Boolean(entry && Array.isArray(entry.items) && entry.expiresAt > Date.now());
 }
 
 function parseS3SearchItemId(itemId) {

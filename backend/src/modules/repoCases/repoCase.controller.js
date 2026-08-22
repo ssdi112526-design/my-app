@@ -385,28 +385,41 @@ const getRepoCases = async (req, res) => {
     }
 
     const uploadRows = await resolveUploadCaseCount(companyId);
-    if (uploadRows > 0 || trimmedSearch || hasVehicleNumber === "true") {
-      if (!isCompanySearchReady(companyId)) {
-        await warmCompanySearchCache(companyId);
+    const hasCompletedUploads =
+      uploadRows > 0 ||
+      Boolean(
+        await UploadBatch.exists({
+          companyId,
+          status: "completed",
+        })
+      );
+
+    if (hasCompletedUploads) {
+      try {
+        if (!isCompanySearchReady(companyId)) {
+          await warmCompanySearchCache(companyId);
+        }
+
+        const s3Result = await searchS3Cases(companyId, {
+          search: trimmedSearch,
+          type,
+          page: safePage,
+          limit: safeLimit,
+          hasVehicleNumber: hasVehicleNumber === "true",
+        });
+
+        return res.json({
+          success: true,
+          items: s3Result.items,
+          total: s3Result.total,
+          page: s3Result.page,
+          limit: s3Result.limit,
+          source: "s3",
+          searchReady: true,
+        });
+      } catch (s3Err) {
+        console.error("S3 vehicle search failed:", s3Err.message);
       }
-
-      const s3Result = await searchS3Cases(companyId, {
-        search: trimmedSearch,
-        type,
-        page: safePage,
-        limit: safeLimit,
-        hasVehicleNumber: hasVehicleNumber === "true",
-      });
-
-      return res.json({
-        success: true,
-        items: s3Result.items,
-        total: s3Result.total,
-        page: s3Result.page,
-        limit: s3Result.limit,
-        source: "s3",
-        searchReady: true,
-      });
     }
 
     return res.json({

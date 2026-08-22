@@ -259,7 +259,10 @@ export default function FindVehiclesResults() {
           setResults([]);
           setTotalFromApi(0);
           setSearchError(
-            err?.response?.data?.message || "Search failed. Try again."
+            err?.response?.data?.message ||
+              (err?.code === "ECONNABORTED"
+                ? "Search timed out. Try again."
+                : "Search failed. Try again.")
           );
         }
       } finally {

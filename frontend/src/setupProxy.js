@@ -18,8 +18,9 @@ module.exports = function setupProxy(app) {
   const proxyOpts = {
     target: backendTarget,
     changeOrigin: true,
-    proxyTimeout: 15000,
-    timeout: 15000,
+    // Find Vehicles can warm S3 Excel indexes on first search (~15–60s).
+    proxyTimeout: 180000,
+    timeout: 180000,
     on: {
       error: (_err, _req, res) => proxyUnavailable(res),
     },
