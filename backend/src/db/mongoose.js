@@ -32,6 +32,8 @@ async function connect(uri) {
   initPool(url);
   require("../modules/loadModels");
   await ensureSchema();
+  const { ensureUploadSearchSchema } = require("../services/uploadSearchRows.service");
+  await ensureUploadSearchSchema();
   connection.readyState = 1;
   return mongoose;
 }

@@ -9,6 +9,54 @@ const {
   isCompanySearchReady,
   resolveFullUploadRowWithTimeout,
 } = require("../../services/uploadS3Search.service");
+const {
+  searchUploadRows,
+  companyNeedsS3SearchFallback,
+  getTypedPrefixRestriction,
+} = require("../../services/uploadSearchRows.service");
+const { SEARCH_MAX_LIMIT } = require("../uploads/upload.constants");
+
+const ALLOWED_SEARCH_TYPES = new Set([
+  "general",
+  "vehicleNumber",
+  "chassisNumber",
+  "loanAccountNumber",
+  "mobileNumber",
+  "phone",
+]);
+
+function parseSearchPaging(query = {}) {
+  const rawPage = Number(query.page);
+  const rawLimit = Number(query.limit);
+  const page = Number.isFinite(rawPage) && rawPage >= 1 ? Math.floor(rawPage) : 1;
+  const requested = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.floor(rawLimit) : 50;
+  const limit = Math.max(1, Math.min(requested, SEARCH_MAX_LIMIT));
+  let type = String(query.type || "general");
+  if (!ALLOWED_SEARCH_TYPES.has(type)) type = "general";
+  return { page, limit, type };
+}
+
+function withSearchPaging(payload, page, limit, total) {
+  const t = Number(total) || 0;
+  const hasNext = t > page * limit;
+  const hasPrevious = page > 1;
+  return {
+    ...payload,
+    page,
+    limit,
+    pageSize: limit,
+    total: t,
+    hasNext,
+    hasPrevious,
+    pagination: {
+      page,
+      pageSize: limit,
+      total: t,
+      hasNext,
+      hasPrevious,
+    },
+  };
+}
 const { mergeCaseForBankNotify } = require("../../utils/mergeCaseForBankNotify");
 const {
   applyExcelContactsToCase,
@@ -276,12 +324,10 @@ const getRepoCases = async (req, res) => {
     const companyId = req.user.companyId;
     const {
       search = "",
-      type = "general",
-      page = 1,
-      limit = 50,
       hasVehicleNumber = "",
       recoveryFilter = "",
     } = req.query;
+    const { page, limit, type } = parseSearchPaging(req.query);
 
     const trimmedSearch = String(search || "").trim();
     const recoveryFilterNorm = String(recoveryFilter || "").toLowerCase();
@@ -300,16 +346,20 @@ const getRepoCases = async (req, res) => {
         getRecoveryCounts(companyId),
       ]);
 
-      return res.json({
-        success: true,
-        items: result.items,
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        source: result.source,
-        filter: result.filter,
-        counts,
-      });
+      return res.json(
+        withSearchPaging(
+          {
+            success: true,
+            items: result.items,
+            source: result.source,
+            filter: result.filter,
+            counts,
+          },
+          result.page,
+          result.limit,
+          result.total
+        )
+      );
     }
 
     const query = { companyId };
@@ -362,10 +412,11 @@ const getRepoCases = async (req, res) => {
       }
     }
 
-    const safePage = Math.max(Number(page) || 1, 1);
-    const safeLimit = Math.max(Number(limit) || 50, 1);
+    const safePage = page;
+    const safeLimit = limit;
     const skip = (safePage - 1) * safeLimit;
 
+    const searchStartedAt = Date.now();
     const items = await RepoCase.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -373,15 +424,33 @@ const getRepoCases = async (req, res) => {
       .lean();
 
     const total = await RepoCase.countDocuments(query);
+    const repoMs = Date.now() - searchStartedAt;
 
     if (total > 0) {
-      return res.json({
-        success: true,
-        items,
-        total,
-        page: safePage,
-        limit: safeLimit,
-      });
+      console.log(
+        `[search] hit=repo_cases repo_cases=${repoMs}ms upload_search_rows=0ms s3=0ms total=${repoMs}ms results=${total}`
+      );
+      return res.json(withSearchPaging({ success: true, items }, safePage, safeLimit, total));
+    }
+
+    const prefixRestriction = getTypedPrefixRestriction(trimmedSearch, type);
+    if (prefixRestriction) {
+      console.log(
+        `[search] hit=restricted repo_cases=${repoMs}ms upload_search_rows=skipped s3=skipped total=${Date.now() - searchStartedAt}ms results=0`
+      );
+      return res.json(
+        withSearchPaging(
+          {
+            success: true,
+            items: [],
+            searchRestricted: true,
+            minSearchLength: prefixRestriction.minSearchLength,
+          },
+          safePage,
+          safeLimit,
+          0
+        )
+      );
     }
 
     const uploadRows = await resolveUploadCaseCount(companyId);
@@ -395,6 +464,87 @@ const getRepoCases = async (req, res) => {
       );
 
     if (hasCompletedUploads) {
+      const pgStartedAt = Date.now();
+      let pgResult = { items: [], total: 0, page: safePage, limit: safeLimit };
+      let pgMs = 0;
+      let pgFailed = false;
+      try {
+        pgResult = await searchUploadRows({
+          companyId,
+          search: trimmedSearch,
+          type,
+          page: safePage,
+          limit: safeLimit,
+          hasVehicleNumber: hasVehicleNumber === "true",
+        });
+        pgMs = Date.now() - pgStartedAt;
+      } catch (pgErr) {
+        pgFailed = true;
+        pgMs = Date.now() - pgStartedAt;
+        console.error("upload_search_rows search failed:", pgErr.message);
+      }
+
+      if (pgResult.searchRestricted) {
+        console.log(
+          `[search] hit=restricted repo_cases=${repoMs}ms upload_search_rows=${pgMs}ms s3=skipped total=${Date.now() - searchStartedAt}ms results=0`
+        );
+        return res.json(
+          withSearchPaging(
+            {
+              success: true,
+              items: [],
+              searchRestricted: true,
+              minSearchLength: pgResult.minSearchLength,
+            },
+            safePage,
+            safeLimit,
+            0
+          )
+        );
+      }
+
+      if (pgResult.searchTimeout) {
+        console.log(
+          `[search] hit=timeout repo_cases=${repoMs}ms upload_search_rows=${pgMs}ms s3=skipped total=${Date.now() - searchStartedAt}ms results=0`
+        );
+        return res.json(
+          withSearchPaging(
+            { success: true, items: [], searchTimeout: true },
+            safePage,
+            safeLimit,
+            0
+          )
+        );
+      }
+
+      if (pgResult.total > 0) {
+        console.log(
+          `[search] hit=upload_search_rows repo_cases=${repoMs}ms upload_search_rows=${pgMs}ms s3=0ms total=${Date.now() - searchStartedAt}ms results=${pgResult.total}`
+        );
+        return res.json(
+          withSearchPaging(
+            { success: true, items: pgResult.items },
+            pgResult.page,
+            pgResult.limit,
+            pgResult.total
+          )
+        );
+      }
+
+      let needsLegacyS3 = true;
+      try {
+        needsLegacyS3 = pgFailed || (await companyNeedsS3SearchFallback(companyId));
+      } catch (fallbackErr) {
+        console.error("S3 fallback check failed:", fallbackErr.message);
+      }
+
+      if (!needsLegacyS3) {
+        console.log(
+          `[search] hit=none repo_cases=${repoMs}ms upload_search_rows=${pgMs}ms s3=skipped total=${Date.now() - searchStartedAt}ms results=0`
+        );
+        return res.json(withSearchPaging({ success: true, items: [] }, safePage, safeLimit, 0));
+      }
+
       try {
         if (!isCompanySearchReady(companyId)) {
           // Do not block the HTTP request on a full S3 warm (Render/live).
@@ -403,6 +553,7 @@ const getRepoCases = async (req, res) => {
           });
         }
 
+        const s3StartedAt = Date.now();
         const s3Result = await searchS3Cases(companyId, {
           search: trimmedSearch,
           type,
@@ -410,28 +561,34 @@ const getRepoCases = async (req, res) => {
           limit: safeLimit,
           hasVehicleNumber: hasVehicleNumber === "true",
         });
+        const s3Ms = Date.now() - s3StartedAt;
+        console.log(
+          `[search] hit=s3 repo_cases=${repoMs}ms upload_search_rows=${pgMs}ms s3=${s3Ms}ms total=${Date.now() - searchStartedAt}ms results=${s3Result.total}`
+        );
 
-        return res.json({
-          success: true,
-          items: s3Result.items,
-          total: s3Result.total,
-          page: s3Result.page,
-          limit: s3Result.limit,
-          source: "s3",
-          searchReady: s3Result.searchReady !== false,
-        });
+        return res.json(
+          withSearchPaging(
+            {
+              success: true,
+              items: s3Result.items,
+              source: "s3",
+              searchReady: s3Result.searchReady !== false,
+            },
+            s3Result.page,
+            s3Result.limit,
+            s3Result.total
+          )
+        );
       } catch (s3Err) {
         console.error("S3 vehicle search failed:", s3Err.message);
       }
+    } else {
+      console.log(
+        `[search] hit=none repo_cases=${repoMs}ms upload_search_rows=skipped s3=skipped total=${repoMs}ms results=0`
+      );
     }
 
-    return res.json({
-      success: true,
-      items,
-      total,
-      page: safePage,
-      limit: safeLimit,
-    });
+    return res.json(withSearchPaging({ success: true, items }, safePage, safeLimit, total));
   } catch (error) {
     return res.status(500).json({
       success: false,

@@ -1,6 +1,11 @@
 const { Queue } = require("bullmq");
 const { isRedisConfigured, getRedisConnectionOptions } = require("../config/redis");
-const { UPLOAD_QUEUE_NAME, UPLOAD_JOB_NAME } = require("./queue.constants");
+const {
+  UPLOAD_QUEUE_NAME,
+  UPLOAD_JOB_NAME,
+  UPLOAD_JOB_ATTEMPTS,
+  UPLOAD_JOB_BACKOFF_MS,
+} = require("./queue.constants");
 
 let uploadQueue = null;
 
@@ -11,8 +16,8 @@ function getUploadQueue() {
     uploadQueue = new Queue(UPLOAD_QUEUE_NAME, {
       connection: getRedisConnectionOptions(),
       defaultJobOptions: {
-        attempts: 3,
-        backoff: { type: "exponential", delay: 5000 },
+        attempts: UPLOAD_JOB_ATTEMPTS,
+        backoff: { type: "exponential", delay: UPLOAD_JOB_BACKOFF_MS },
         removeOnComplete: 100,
         removeOnFail: 200,
       },
@@ -40,16 +45,34 @@ async function enqueueUploadJob(payload) {
     if (["waiting", "active", "delayed", "paused"].includes(state)) {
       return { queued: true, jobId, duplicate: true, state };
     }
+    if (state === "completed") {
+      return { queued: true, jobId, duplicate: true, state };
+    }
+    if (state === "failed") {
+      await existing.retry();
+      return { queued: true, jobId, duplicate: false, retried: true, state };
+    }
   }
 
-  const job = await queue.add(UPLOAD_JOB_NAME, payload, {
-    jobId,
-  });
+  try {
+    const job = await queue.add(UPLOAD_JOB_NAME, payload, { jobId });
+    return { queued: true, jobId: job.id, duplicate: false };
+  } catch (err) {
+    if (/already (exists|exist)/i.test(String(err.message || ""))) {
+      return { queued: true, jobId, duplicate: true };
+    }
+    throw err;
+  }
+}
 
-  return { queued: true, jobId: job.id, duplicate: false };
+async function closeUploadQueue() {
+  if (!uploadQueue) return;
+  await uploadQueue.close();
+  uploadQueue = null;
 }
 
 module.exports = {
   getUploadQueue,
   enqueueUploadJob,
+  closeUploadQueue,
 };

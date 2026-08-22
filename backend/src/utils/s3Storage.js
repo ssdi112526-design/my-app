@@ -5,6 +5,7 @@ const {
   DeleteObjectCommand,
   DeleteObjectsCommand,
   PutBucketCorsCommand,
+  HeadObjectCommand,
 } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -207,6 +208,20 @@ async function createPresignedPutUrl(key, contentType, expiresIn = 3600) {
   return { uploadUrl, bucket, key, expiresIn, contentType: mime };
 }
 
+async function headObjectFromS3(key) {
+  const client = getS3Client();
+  const response = await client.send(
+    new HeadObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET,
+      Key: key,
+    })
+  );
+  return {
+    contentLength: Number(response.ContentLength || 0),
+    contentType: response.ContentType || "",
+  };
+}
+
 async function getObjectBufferFromS3(key) {
   const { stream } = await getObjectStreamFromS3(key);
   const chunks = [];
@@ -227,6 +242,7 @@ module.exports = {
   createPresignedPutUrl,
   getObjectStreamFromS3,
   getObjectBufferFromS3,
+  headObjectFromS3,
   deleteObjectFromS3,
   deleteObjectsFromS3,
   applyBucketCors,

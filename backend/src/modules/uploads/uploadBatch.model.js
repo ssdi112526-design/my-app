@@ -32,8 +32,8 @@ const uploadBatchSchema = new mongoose.Schema(
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     status: {
       type: String,
-      enum: ["processing", "completed", "failed"],
-      default: "completed",
+      enum: ["pending", "processing", "completed", "failed"],
+      default: "pending",
       index: true,
     },
     processedRows: { type: Number, default: 0 },

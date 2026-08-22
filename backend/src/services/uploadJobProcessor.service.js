@@ -8,16 +8,21 @@ const {
   UPLOAD_S3_ONLY,
   MAX_MONGO_IMPORT_ROWS,
   MAX_UPLOAD_ROWS,
+  UPLOAD_SEARCH_CHUNK_SIZE,
+  S3_INDEX_FROM_PG_MAX,
 } = require("../modules/uploads/upload.constants");
+const {
+  insertSearchRowChunk,
+  deleteByBatch,
+  toSearchRow,
+  fetchSearchRowsForS3Index,
+} = require("./uploadSearchRows.service");
 const { getObjectStreamFromS3 } = require("../utils/s3Storage");
 const {
   saveUploadDatasetToS3,
   saveSearchIndexToS3,
 } = require("../modules/uploads/uploadFileStorage");
-const {
-  invalidateCompanyCache,
-  warmBatchIndexCache,
-} = require("./uploadS3Search.service");
+const { invalidateCompanyCache } = require("./uploadS3Search.service");
 const { streamExcelFromReadable } = require("./excelStream.service");
 const { bulkUpsertCases } = require("./uploadBulk.service");
 const {
@@ -26,8 +31,21 @@ const {
   emitUploadFailed,
 } = require("../utils/socketBridge");
 const { bankBranchScopeFilter } = require("../modules/uploads/uploadProcess.service");
+const { UnrecoverableError } = require("bullmq");
 
 const MAX_FAILED_DETAILS = 200;
+
+function asUploadError(err) {
+  const msg = String(err?.message || err || "");
+  if (
+    /corrupted zip|invalid zip|end of data|end of central directory|password-protected|not a valid|malformed|unsupported file|can't find end of central directory/i.test(
+      msg
+    )
+  ) {
+    return new UnrecoverableError(`Malformed Excel: ${msg}`);
+  }
+  return err;
+}
 
 function buildPayload(rawRow, rowIndex, batchId, companyId, userId, bankName, branchName, mapping) {
   const row = normalizeRow(rawRow, branchName, mapping);
@@ -52,6 +70,9 @@ function buildPayload(rawRow, rowIndex, batchId, companyId, userId, bankName, br
     vehicleNumber: row.vehicleNumber,
     chassisNumber: row.chassisNumber,
     engineNumber: row.engineNumber,
+    contactPerson1Phone: row.contactPerson1Phone || "",
+    contactPerson2Phone: row.contactPerson2Phone || "",
+    contactPerson3Phone: row.contactPerson3Phone || "",
     vehicleBrand: row.vehicleBrand,
     vehicleModel: row.vehicleModel,
     addressLine1: row.addressLine1,
@@ -103,8 +124,13 @@ async function processUploadJob(jobData, job) {
     const { collectS3KeysFromBatches } = require("./uploadDelete.service");
     const { deleteObjectsFromS3 } = require("../utils/s3Storage");
     await deleteObjectsFromS3(collectS3KeysFromBatches(oldBatches));
+    await deleteByBatch(oldIds);
     await UploadBatch.deleteMany({ _id: { $in: oldIds } });
   }
+
+  // Retry-safe: drop this batch's search rows before re-insert so BullMQ retries
+  // cannot create duplicates.
+  await deleteByBatch(batchId);
 
   const { stream } = await getObjectStreamFromS3(s3Key);
 
@@ -115,9 +141,17 @@ async function processUploadJob(jobData, job) {
   let failedRows = 0;
   let duplicateRows = 0;
   const failedDetails = [];
-  const datasetRows = [];
+  const searchChunk = [];
+  let searchInserted = 0;
   let totalRows = 0;
   let columnNames = [];
+
+  const flushSearchChunk = async () => {
+    if (!searchChunk.length) return;
+    await insertSearchRowChunk(searchChunk);
+    searchInserted += searchChunk.length;
+    searchChunk.length = 0;
+  };
 
   const reportProgress = async (processed, total, message) => {
     const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
@@ -143,7 +177,9 @@ async function processUploadJob(jobData, job) {
 
   await reportProgress(0, 0, "Reading Excel from S3…");
 
-  const result = await streamExcelFromReadable(stream, async ({ rows, startRowIndex, headers, totalRowsSoFar }) => {
+  let result;
+  try {
+    result = await streamExcelFromReadable(stream, async ({ rows, startRowIndex, headers, totalRowsSoFar }) => {
     if (!mapping && rows[0]) {
       mapping = buildSuggestedMapping(rows[0]);
     }
@@ -180,7 +216,10 @@ async function processUploadJob(jobData, job) {
         continue;
       }
 
-      datasetRows.push(built.payload);
+      searchChunk.push(toSearchRow(built.payload, built.rowIndex));
+      if (searchChunk.length >= UPLOAD_SEARCH_CHUNK_SIZE) {
+        await flushSearchChunk();
+      }
 
       if (mongoEnabled && successRows + payloads.length < mongoCap) {
         payloads.push(built.payload);
@@ -210,14 +249,19 @@ async function processUploadJob(jobData, job) {
       `Imported ${successRows.toLocaleString()} / ${totalRowsSoFar.toLocaleString()} rows…`
     );
   });
+  } catch (streamErr) {
+    throw asUploadError(streamErr);
+  }
 
   totalRows = result.totalRows || totalRows;
   columnNames = result.headers?.length ? result.headers : columnNames;
 
+  await flushSearchChunk();
+
   batch.totalRows = totalRows;
   batch.columnCount = columnNames.length;
   batch.columnNames = columnNames;
-  batch.successRows = mongoEnabled ? successRows : datasetRows.length || totalRows;
+  batch.successRows = mongoEnabled ? successRows : searchInserted;
   batch.failedRows = failedRows;
   batch.duplicateRows = duplicateRows;
   batch.failedDetails = failedDetails;
@@ -232,10 +276,6 @@ async function processUploadJob(jobData, job) {
 
   await batch.save();
 
-  if (datasetRows.length > 0) {
-    warmBatchIndexCache(batch.toObject(), datasetRows);
-  }
-
   emitUploadComplete({
     companyId,
     userId,
@@ -243,10 +283,11 @@ async function processUploadJob(jobData, job) {
     batch: batch.toObject(),
   });
 
-  if (datasetRows.length > 0) {
-    const rowsForIndex = datasetRows;
+  if (searchInserted > 0 && searchInserted <= S3_INDEX_FROM_PG_MAX) {
     setImmediate(async () => {
       try {
+        const rowsForIndex = await fetchSearchRowsForS3Index(batchId, S3_INDEX_FROM_PG_MAX);
+        if (!rowsForIndex.length) return;
         const { s3SearchIndexKey } = await saveSearchIndexToS3(
           companyId,
           batchId,
@@ -291,6 +332,12 @@ async function failUploadJob(jobData, errorMessage) {
     batch.status = "failed";
     batch.errorMessage = errorMessage;
     await batch.save();
+  }
+
+  try {
+    await deleteByBatch(jobData.batchId);
+  } catch (cleanupErr) {
+    console.error("Search-row rollback after upload failure failed:", cleanupErr.message);
   }
 
   emitUploadFailed({

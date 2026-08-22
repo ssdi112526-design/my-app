@@ -9,6 +9,7 @@ const {
   buildObjectKey,
   createPresignedPutUrl,
   uploadBufferToS3,
+  headObjectFromS3,
 } = require("../../utils/s3Storage");
 const {
   cleanValue,
@@ -18,7 +19,7 @@ const {
   SYSTEM_FIELD_DEFS,
 } = require("./excelParser");
 const { enqueueUploadJob } = require("../../queues/uploadQueue");
-const { isRedisConfigured } = require("../../config/redis");
+const { isUploadQueueEnabled } = require("../../config/redis");
 const { processUploadJob } = require("../../services/uploadJobProcessor.service");
 const {
   processUploadInBackground,
@@ -28,12 +29,10 @@ const {
   purgeUploadBatchesFast,
   purgeUploadBatchesBackground,
 } = require("../../services/uploadDelete.service");
+const { rejectUploadFile, uploadFileTooLarge, oversizedUploadMessage } = require("./uploadFileValidation");
 
 function shouldUseUploadQueue() {
-  return (
-    isRedisConfigured() &&
-    (process.env.UPLOAD_USE_QUEUE === "true" || process.env.UPLOAD_USE_QUEUE === "1")
-  );
+  return isUploadQueueEnabled();
 }
 
 const previewRepoCases = async (req, res) => {
@@ -42,6 +41,14 @@ const previewRepoCases = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "File is required.",
+      });
+    }
+
+    const previewReject = rejectUploadFile(req.file.originalname, req.file.size);
+    if (previewReject) {
+      return res.status(previewReject.includes("exceeds") ? 413 : 400).json({
+        success: false,
+        message: previewReject,
       });
     }
 
@@ -94,6 +101,14 @@ const uploadRepoCases = async (req, res) => {
       });
     }
 
+    const uploadReject = rejectUploadFile(req.file.originalname, req.file.size);
+    if (uploadReject) {
+      return res.status(uploadReject.includes("exceeds") ? 413 : 400).json({
+        success: false,
+        message: uploadReject,
+      });
+    }
+
     const bankName = cleanValue(req.body.bankName);
     const branchName = cleanValue(req.body.branchName);
     const columnMapping = parseColumnMappingBody(req.body.columnMapping);
@@ -133,7 +148,7 @@ const uploadRepoCases = async (req, res) => {
       columnCount: 0,
       columnNames: [],
       uploadedBy: req.user.userId,
-      status: "processing",
+      status: "pending",
       processedRows: 0,
       storageLocation: "s3",
     });
@@ -151,21 +166,48 @@ const uploadRepoCases = async (req, res) => {
     } catch (storeErr) {
       console.error("Failed to store upload file:", storeErr.message);
     }
-    const fileBuffer = req.file.buffer;
+    const jobPayload = {
+      batchId: batch._id,
+      companyId: req.user.companyId,
+      userId: req.user.userId,
+      bankName,
+      branchName,
+      fileName: req.file.originalname,
+      s3Key: batch.storedFilePath,
+      columnMapping,
+      replacedPriorBatches,
+    };
 
-    setImmediate(() => {
-      processUploadInBackground({
-        batchId: batch._id,
-        companyId: req.user.companyId,
-        userId: req.user.userId,
-        bankName,
-        branchName,
-        fileName: req.file.originalname,
-        fileBuffer,
-        columnMapping,
-        replacedPriorBatches,
+    let queued = false;
+    if (shouldUseUploadQueue() && batch.storedFilePath) {
+      try {
+        const queueResult = await enqueueUploadJob(jobPayload);
+        if (queueResult?.queued) {
+          batch.queueJobId = String(queueResult.jobId);
+          await batch.save();
+          queued = true;
+        }
+      } catch (queueErr) {
+        console.error("Upload queue enqueue failed:", queueErr.message);
+      }
+    }
+
+    if (!queued) {
+      const fileBuffer = req.file.buffer;
+      setImmediate(() => {
+        processUploadInBackground({
+          batchId: batch._id,
+          companyId: req.user.companyId,
+          userId: req.user.userId,
+          bankName,
+          branchName,
+          fileName: req.file.originalname,
+          fileBuffer,
+          columnMapping,
+          replacedPriorBatches,
+        });
       });
-    });
+    }
 
     return res.status(202).json({
       success: true,
@@ -192,6 +234,13 @@ const presignS3Upload = async (req, res) => {
     const bankName = cleanValue(req.body.bankName);
     const branchName = cleanValue(req.body.branchName);
     const fileName = cleanValue(req.body.fileName) || "upload.xlsx";
+    const presignReject = rejectUploadFile(fileName, req.body.contentLength);
+    if (presignReject) {
+      return res.status(presignReject.includes("exceeds") ? 413 : 400).json({
+        success: false,
+        message: presignReject,
+      });
+    }
     const contentType = getMimeType(fileName);
 
     if (!bankName || !branchName) {
@@ -210,7 +259,7 @@ const presignS3Upload = async (req, res) => {
       columnCount: 0,
       columnNames: [],
       uploadedBy: req.user.userId,
-      status: "processing",
+      status: "pending",
       processedRows: 0,
       storageLocation: "s3",
     });
@@ -252,6 +301,13 @@ const proxyS3Upload = async (req, res) => {
     const batchId = cleanValue(req.body.batchId);
     if (!req.file) {
       return res.status(400).json({ success: false, message: "File is required." });
+    }
+    const proxyReject = rejectUploadFile(req.file.originalname, req.file.size);
+    if (proxyReject) {
+      return res.status(proxyReject.includes("exceeds") ? 413 : 400).json({
+        success: false,
+        message: proxyReject,
+      });
     }
     if (!batchId) {
       return res.status(400).json({ success: false, message: "batchId is required." });
@@ -314,6 +370,21 @@ const completeS3Upload = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Upload file key missing. Presign again.",
+      });
+    }
+
+    try {
+      const head = await headObjectFromS3(batch.storedFilePath);
+      if (uploadFileTooLarge(head.contentLength)) {
+        return res.status(413).json({
+          success: false,
+          message: oversizedUploadMessage(),
+        });
+      }
+    } catch (headErr) {
+      return res.status(400).json({
+        success: false,
+        message: headErr.message || "Could not verify uploaded file on S3.",
       });
     }
 

@@ -28,6 +28,12 @@ const companyController = require("./modules/companies/company.controller");
 const { protect, authorize } = require("./middlewares/auth");
 
 const errorHandler = require("./middlewares/errorHandler");
+const {
+  authRateLimit,
+  searchRateLimit,
+  uploadRateLimit,
+  apiRateLimit,
+} = require("./middlewares/rateLimit");
 
 const app = express();
 
@@ -72,6 +78,13 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "API is working." });
 });
+
+app.use("/api", apiRateLimit);
+app.use("/api/auth", authRateLimit);
+app.use("/api/repo-admin/login", authRateLimit);
+app.use("/api/bank/login", authRateLimit);
+app.use("/api/repo-cases", searchRateLimit);
+app.use("/api/uploads", uploadRateLimit);
 
 // routes
 app.use("/api/auth", authRoutes);

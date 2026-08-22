@@ -39,7 +39,7 @@ function UploadProgressBar({ percent }) {
 
 function BatchStatusCard({ batch, onDismiss }) {
   if (!batch) return null;
-  const isProcessing = batch.status === "processing";
+  const isProcessing = batch.status === "processing" || batch.status === "pending";
   const isFailed = batch.status === "failed";
   const isDone = batch.status === "completed";
   const pct =

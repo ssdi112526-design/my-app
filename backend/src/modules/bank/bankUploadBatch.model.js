@@ -26,8 +26,8 @@ const bankUploadBatchSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["processing", "completed", "failed"],
-      default: "processing",
+      enum: ["pending", "processing", "completed", "failed"],
+      default: "pending",
       index: true,
     },
 

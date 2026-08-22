@@ -12,7 +12,7 @@ const { hashPassword, comparePassword } = require("../../utils/hash");
 const { signToken } = require("../../utils/jwt");
 const { ok, fail } = require("../../utils/response");
 const { createPresignedPutUrl, uploadBufferToS3 } = require("../../utils/s3Storage");
-const { isRedisConfigured } = require("../../config/redis");
+const { isUploadQueueEnabled } = require("../../config/redis");
 const { enqueueUploadJob } = require("../../queues/uploadQueue");
 const { processBankUploadJob } = require("../../services/bankRecordProcessor.service");
 const { sanitizeBankRecordForRole } = require("../../utils/bankRecordSanitize");
@@ -1105,7 +1105,7 @@ module.exports.presignBankUpload = async (req, res, next) => {
       bankId,
       uploadedBy: req.user.userId,
       fileName: String(fileName).trim(),
-      status: "processing",
+      status: "pending",
     });
 
     const s3Key = buildBankS3Key(bankId, batch._id, fileName);
@@ -1168,7 +1168,7 @@ module.exports.completeBankUpload = async (req, res, next) => {
 
     // Try BullMQ queue first, fall back to setImmediate
     let queued = false;
-    if (isRedisConfigured() && (process.env.UPLOAD_USE_QUEUE === "true" || process.env.UPLOAD_USE_QUEUE === "1")) {
+    if (isUploadQueueEnabled()) {
       try {
         const result = await enqueueUploadJob(jobPayload);
         if (result?.queued) {

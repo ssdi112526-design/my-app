@@ -53,6 +53,38 @@ async function query(text, params) {
   return getPool().query(text, params);
 }
 
+function isStatementTimeoutError(err) {
+  return Boolean(
+    err && (err.code === "57014" || /statement timeout/i.test(String(err.message || "")))
+  );
+}
+
+/**
+ * One-request timeout via SET LOCAL. Does not change the pool or other queries.
+ */
+async function queryWithStatementTimeout(text, params, timeoutMs) {
+  const ms = Math.max(0, Math.floor(Number(timeoutMs) || 0));
+  if (!ms) return query(text, params);
+
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(`SET LOCAL statement_timeout = ${ms}`);
+    const result = await client.query(text, params);
+    await client.query("COMMIT");
+    return result;
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (_rollbackErr) {
+      /* ignore */
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 async function closePool() {
   if (pool) {
     await pool.end();
@@ -65,5 +97,7 @@ module.exports = {
   initPool,
   getPool,
   query,
+  queryWithStatementTimeout,
+  isStatementTimeoutError,
   closePool,
 };

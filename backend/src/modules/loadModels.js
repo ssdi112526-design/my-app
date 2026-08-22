@@ -7,6 +7,7 @@ require("./payments/payment.model");
 require("./repoCases/repoCase.model");
 require("./repoCases/vehicleLoadedNote.model");
 require("./uploads/uploadBatch.model");
+require("./uploads/uploadSearchRow.model");
 require("./confirmations/confirmation.model");
 require("./bank/bank.model");
 require("./bank/bankRecord.model");

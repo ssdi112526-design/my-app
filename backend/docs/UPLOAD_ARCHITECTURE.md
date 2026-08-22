@@ -29,6 +29,10 @@ AWS_S3_BUCKET=fastrecovery
 
 # Redis / Upstash (required for queue)
 REDIS_URL=rediss://default:PASSWORD@HOST:6379
+UPLOAD_USE_QUEUE=true
+UPLOAD_JOB_ATTEMPTS=3
+UPLOAD_JOB_BACKOFF_MS=5000
+UPLOAD_LOCK_DURATION_MS=600000
 
 # PostgreSQL — metadata + optional row import
 DATABASE_URL=
@@ -43,13 +47,15 @@ UPLOAD_WORKER_CONCURRENCY=2
 ## Run (3 terminals)
 
 ```bash
-# 1 API
-cd backend && npm run dev
+# Production
+cd backend && npm run start
+cd backend && npm run worker
 
-# 2 Worker
+# Development
+cd backend && npm run dev
 cd backend && npm run worker:dev
 
-# 3 Frontend
+# Frontend
 cd frontend && npm start
 ```
 

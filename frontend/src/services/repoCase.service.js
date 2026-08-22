@@ -2,9 +2,11 @@ import api from "./api";
 
 export const repoCaseService = {
   getCases: async (token, params = {}) => {
+    const { signal, ...query } = params;
     const res = await api.get("/repo-cases", {
-      params,
-      timeout: params.search || params.hasVehicleNumber ? 180000 : undefined,
+      params: query,
+      signal,
+      timeout: query.search || query.hasVehicleNumber ? 180000 : undefined,
       headers: {
         Authorization: `Bearer ${token}`,
       },

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useAuth from "../../../hooks/useAuth";
 import { repoCaseService } from "../../../services/repoCase.service";
@@ -38,11 +38,11 @@ import { sortByLabel } from "../../../utils/sortByLabel";
 import VehicleChassisSearchBar from "./VehicleChassisSearchBar";
 import "../../../styles/vehicles.css";
 
-const SEARCH_PAGE_LIMIT = 500;
+const SEARCH_PAGE_LIMIT = 50;
 /** Keep URL in sync (bookmarks / share) without delaying results. */
 const URL_SYNC_DEBOUNCE_MS = 400;
-/** Slight delay before hitting the API while the user is still typing. */
-const FETCH_DEBOUNCE_MS = 180;
+/** Delay before hitting the API while the user is still typing. */
+const FETCH_DEBOUNCE_MS = 250;
 
 function dedupeByVehicleNumber(items) {
   const seen = new Set();
@@ -118,6 +118,9 @@ export default function FindVehiclesResults() {
 
   const [results, setResults] = useState([]);
   const [totalFromApi, setTotalFromApi] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrevious, setHasPrevious] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [previewVehicle, setPreviewVehicle] = useState(null);
@@ -218,16 +221,31 @@ export default function FindVehiclesResults() {
     repoCaseService.warmSearchCache(auth.token).catch(() => {});
   }, [auth?.token]);
 
+  const searchKeyRef = useRef(`${fetchMode}|${fetchQuery}`);
+
   useEffect(() => {
     if (!auth?.token || !shouldSearch) {
       setResults([]);
       setTotalFromApi(0);
+      setHasNext(false);
+      setHasPrevious(false);
       setSearchError("");
       setLoadingSearch(false);
       return undefined;
     }
 
+    const searchKey = `${fetchMode}|${fetchQuery}`;
+    if (searchKeyRef.current !== searchKey) {
+      searchKeyRef.current = searchKey;
+      if (page !== 1) {
+        setPage(1);
+        setLoadingSearch(false);
+        return undefined;
+      }
+    }
+
     setLoadingSearch(true);
+    const controller = new AbortController();
     let cancelled = false;
     const timer = setTimeout(async () => {
       setSearchError("");
@@ -242,24 +260,25 @@ export default function FindVehiclesResults() {
           repoCaseService.getCases(auth.token, {
             search: fetchQuery,
             type: apiType,
-            page: 1,
+            page,
             limit: SEARCH_PAGE_LIMIT,
+            signal: controller.signal,
           });
 
         let res;
         try {
           res = await runSearch();
         } catch (firstErr) {
-          // Live Render often sleeps; one retry covers the cold start.
+          if (firstErr?.code === "ERR_CANCELED" || controller.signal.aborted) return;
           await new Promise((resolve) => setTimeout(resolve, 2500));
-          if (cancelled) return;
+          if (cancelled || controller.signal.aborted) return;
           try {
             res = await runSearch();
           } catch (err) {
             throw firstErr?.response ? firstErr : err;
           }
         }
-        if (cancelled) return;
+        if (cancelled || controller.signal.aborted) return;
         const rawItems = getItems(res);
         const filtered =
           fetchMode === "chassis"
@@ -268,28 +287,37 @@ export default function FindVehiclesResults() {
               ? dedupeById(rawItems)
               : dedupeByVehicleNumber(filterValidVehicleRecords(rawItems));
         setResults(filtered);
-        setTotalFromApi(Number(res?.total) || filtered.length);
+        const total = Number(res?.total) || filtered.length;
+        setTotalFromApi(total);
+        setHasNext(
+          Boolean(res?.hasNext ?? res?.pagination?.hasNext ?? total > page * SEARCH_PAGE_LIMIT)
+        );
+        setHasPrevious(
+          Boolean(res?.hasPrevious ?? res?.pagination?.hasPrevious ?? page > 1)
+        );
       } catch (err) {
-        if (!cancelled) {
-          setResults([]);
-          setTotalFromApi(0);
-          setSearchError(
-            err?.response?.data?.message ||
-              (err?.code === "ECONNABORTED"
-                ? "Search timed out. Try again."
-                : "Search failed. Try again.")
-          );
-        }
+        if (cancelled || err?.code === "ERR_CANCELED" || controller.signal.aborted) return;
+        setResults([]);
+        setTotalFromApi(0);
+        setHasNext(false);
+        setHasPrevious(false);
+        setSearchError(
+          err?.response?.data?.message ||
+            (err?.code === "ECONNABORTED"
+              ? "Search timed out. Try again."
+              : "Search failed. Try again.")
+        );
       } finally {
-        if (!cancelled) setLoadingSearch(false);
+        if (!cancelled && !controller.signal.aborted) setLoadingSearch(false);
       }
     }, FETCH_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
+      controller.abort();
       clearTimeout(timer);
     };
-  }, [auth?.token, shouldSearch, fetchQuery, fetchMode]);
+  }, [auth?.token, shouldSearch, fetchQuery, fetchMode, page]);
 
   const handleShare = async (channel, item) => {
     if (!auth?.token || shareBusy || !item) return;
@@ -412,13 +440,7 @@ export default function FindVehiclesResults() {
 
       <div className="fv-results-minimal-body">
         {loadingSearch && (
-          <div className="fv-empty-box">
-            Searching…
-            <p className="muted small" style={{ marginTop: 8 }}>
-              First search after login may take up to 1–2 minutes while your upload index
-              loads into memory. After that, searches are instant until the server restarts.
-            </p>
-          </div>
+          <div className="fv-empty-box">Searching…</div>
         )}
 
         {!loadingSearch && showQuery && noMatches && (
@@ -432,9 +454,31 @@ export default function FindVehiclesResults() {
           <>
             {truncated && (
               <p className="fv-results-minimal-truncated">
-                Showing first {SEARCH_PAGE_LIMIT} of {totalFromApi} matches.
+                Showing page {page} ({SEARCH_PAGE_LIMIT} per page) of {totalFromApi} matches.
               </p>
             )}
+            <div className="fv-results-pager" role="navigation" aria-label="Search pagination">
+              <button
+                type="button"
+                className="fv-results-pager__btn"
+                disabled={!hasPrevious || loadingSearch}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <span className="fv-results-pager__status">
+                Page {page}
+                {totalFromApi ? ` · ${totalFromApi} total` : ""}
+              </span>
+              <button
+                type="button"
+                className="fv-results-pager__btn"
+                disabled={!hasNext || loadingSearch}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Next
+              </button>
+            </div>
             <div className="fv-excel-grid" aria-label="Search results">
               {sortedResults.map((item) => {
                 const sub = cardSecondaryLabel(item, fetchMode);

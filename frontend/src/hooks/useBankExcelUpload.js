@@ -30,7 +30,7 @@ export function useBankExcelUpload({ onComplete } = {}) {
           const batch = res?.data?.data?.batch;
           if (!batch) return;
           setActiveBatch(batch);
-          if (batch.status !== "processing") {
+          if (batch.status !== "processing" && batch.status !== "pending") {
             stopPolling();
             setUploadStage("idle");
             onComplete?.(batch);

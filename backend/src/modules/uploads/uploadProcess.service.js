@@ -24,7 +24,13 @@ const {
   S3_ONLY_ROW_THRESHOLD,
   MAX_UPLOAD_ROWS,
   EXCEL_CHUNK_SIZE,
+  UPLOAD_SEARCH_CHUNK_SIZE,
 } = require("./upload.constants");
+const {
+  insertSearchRowChunk,
+  deleteByBatch,
+  toSearchRow,
+} = require("../../services/uploadSearchRows.service");
 
 const BULK_INSERT_SIZE = 1000;
 const MAX_FAILED_DETAILS = 200;
@@ -292,8 +298,11 @@ async function processUploadInBackground({
       const { collectS3KeysFromBatches } = require("../../services/uploadDelete.service");
       const { deleteObjectsFromS3 } = require("../../utils/s3Storage");
       await deleteObjectsFromS3(collectS3KeysFromBatches(existingBatches));
+      await deleteByBatch(oldIds);
       await UploadBatch.deleteMany({ _id: { $in: oldIds } });
     }
+
+    await deleteByBatch(batchId);
 
     let mapping =
       columnMapping && Object.keys(columnMapping).length > 0
@@ -310,7 +319,16 @@ async function processUploadInBackground({
       failedDetails: [],
     };
     const datasetRows = [];
+    const searchChunk = [];
+    let searchInserted = 0;
     const seenInFile = { loans: new Set(), vehicles: new Set(), chassis: new Set() };
+
+    const flushSearchChunk = async () => {
+      if (!searchChunk.length) return;
+      await insertSearchRowChunk(searchChunk);
+      searchInserted += searchChunk.length;
+      searchChunk.length = 0;
+    };
 
     if (!s3Only) {
       let processed = 0;
@@ -393,42 +411,45 @@ async function processUploadInBackground({
           }
 
           const excelFields = buildExcelFieldsSnapshot(rows[i]);
-          datasetRows.push(
-            applyHydratedBankerContacts(
-              {
-                companyId,
-                uploadBatchId: batchId,
-                bankName,
-                branchName,
-                customerName: row.customerName,
-                mobileNumber: row.mobileNumber,
-                alternateMobileNumber: row.alternateMobileNumber,
-                loanAccountNumber: row.loanAccountNumber,
-                referenceNumber: row.referenceNumber,
-                vehicleNumber: row.vehicleNumber,
-                chassisNumber: row.chassisNumber,
-                engineNumber: row.engineNumber,
-                vehicleBrand: row.vehicleBrand,
-                vehicleModel: row.vehicleModel,
-                addressLine1: row.addressLine1,
-                city: row.city || "",
-                state: row.state || "",
-                emiAmount: row.emiAmount,
-                dueAmount: row.dueAmount,
-                totalOutstandingAmount: row.totalOutstandingAmount,
-                bucket: row.bucket,
-                contactPerson1Name: row.contactPerson1Name,
-                contactPerson1Phone: row.contactPerson1Phone,
-                contactPerson2Name: row.contactPerson2Name,
-                contactPerson2Phone: row.contactPerson2Phone,
-                contactPerson3Name: row.contactPerson3Name,
-                contactPerson3Phone: row.contactPerson3Phone,
-                bankNotifyEmail1: row.bankNotifyEmail1,
-                bankNotifyEmail2: row.bankNotifyEmail2,
-              },
-              excelFields
-            )
+          const payload = applyHydratedBankerContacts(
+            {
+              companyId,
+              uploadBatchId: batchId,
+              bankName,
+              branchName,
+              customerName: row.customerName,
+              mobileNumber: row.mobileNumber,
+              alternateMobileNumber: row.alternateMobileNumber,
+              loanAccountNumber: row.loanAccountNumber,
+              referenceNumber: row.referenceNumber,
+              vehicleNumber: row.vehicleNumber,
+              chassisNumber: row.chassisNumber,
+              engineNumber: row.engineNumber,
+              vehicleBrand: row.vehicleBrand,
+              vehicleModel: row.vehicleModel,
+              addressLine1: row.addressLine1,
+              city: row.city || "",
+              state: row.state || "",
+              emiAmount: row.emiAmount,
+              dueAmount: row.dueAmount,
+              totalOutstandingAmount: row.totalOutstandingAmount,
+              bucket: row.bucket,
+              contactPerson1Name: row.contactPerson1Name,
+              contactPerson1Phone: row.contactPerson1Phone,
+              contactPerson2Name: row.contactPerson2Name,
+              contactPerson2Phone: row.contactPerson2Phone,
+              contactPerson3Name: row.contactPerson3Name,
+              contactPerson3Phone: row.contactPerson3Phone,
+              bankNotifyEmail1: row.bankNotifyEmail1,
+              bankNotifyEmail2: row.bankNotifyEmail2,
+            },
+            excelFields
           );
+          searchChunk.push(toSearchRow(payload, rowIndex));
+          if (searchChunk.length >= UPLOAD_SEARCH_CHUNK_SIZE) {
+            await flushSearchChunk();
+          }
+          datasetRows.push(payload);
         }
 
         batch.processedRows = Math.min(startIndex + rows.length, totalRows);
@@ -436,10 +457,12 @@ async function processUploadInBackground({
       }
     }
 
+    await flushSearchChunk();
+
     batch.status = "completed";
     batch.processedRows = totalRows;
 
-    batch.successRows = s3Only ? datasetRows.length || totalRows : stats.successRows;
+    batch.successRows = s3Only ? searchInserted || datasetRows.length || totalRows : stats.successRows;
     batch.failedRows = stats.failedRows;
     batch.duplicateRows = stats.duplicateRows;
     batch.skippedInvalidLoanRows = stats.skippedInvalidLoanRows || 0;
@@ -534,6 +557,11 @@ async function processUploadInBackground({
     batch.status = "failed";
     batch.errorMessage = err.message;
     await batch.save();
+    try {
+      await deleteByBatch(batchId);
+    } catch (cleanupErr) {
+      console.error("Search-row rollback after upload failure failed:", cleanupErr.message);
+    }
   }
 }
 

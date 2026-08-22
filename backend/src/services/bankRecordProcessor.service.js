@@ -203,6 +203,9 @@ async function processBankUploadJob({ batchId, bankId, uploadedBy, s3Key, fileNa
   const batch = await BankUploadBatch.findById(batchId);
   if (!batch) return;
 
+  batch.status = "processing";
+  await batch.save();
+
   try {
     let mapping = null;
     let totalRows = 0;

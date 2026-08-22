@@ -3,6 +3,7 @@ const UploadBatch = require("../modules/uploads/uploadBatch.model");
 const { deleteObjectsFromS3 } = require("../utils/s3Storage");
 const { UPLOAD_S3_ONLY } = require("../modules/uploads/upload.constants");
 const { invalidateUploadBatches } = require("./uploadS3Search.service");
+const { deleteByBatch } = require("./uploadSearchRows.service");
 
 function collectS3KeysFromBatches(batches) {
   const keys = [];
@@ -23,6 +24,7 @@ async function purgeUploadBatchesFast(companyId, batches) {
   const companyKey = String(companyId);
 
   invalidateUploadBatches(companyKey, batchIds);
+  await deleteByBatch(batchIds);
 
   const deleteResult = await UploadBatch.deleteMany({
     _id: { $in: batchIds },

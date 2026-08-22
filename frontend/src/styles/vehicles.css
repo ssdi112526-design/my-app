@@ -375,6 +375,34 @@
   margin: 0 0 10px;
 }
 
+.fv-results-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.fv-results-pager__btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.fv-results-pager__btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.fv-results-pager__status {
+  font-size: 13px;
+  color: #475569;
+}
+
 .fv-results-search-form {
   max-width: 100%;
   width: 100%;
