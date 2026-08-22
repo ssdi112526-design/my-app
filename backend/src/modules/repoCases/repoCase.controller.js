@@ -397,7 +397,10 @@ const getRepoCases = async (req, res) => {
     if (hasCompletedUploads) {
       try {
         if (!isCompanySearchReady(companyId)) {
-          await warmCompanySearchCache(companyId);
+          // Do not block the HTTP request on a full S3 warm (Render/live).
+          warmCompanySearchCache(companyId).catch((err) => {
+            console.error("Background search warm failed:", err.message);
+          });
         }
 
         const s3Result = await searchS3Cases(companyId, {
@@ -415,7 +418,7 @@ const getRepoCases = async (req, res) => {
           page: s3Result.page,
           limit: s3Result.limit,
           source: "s3",
-          searchReady: true,
+          searchReady: s3Result.searchReady !== false,
         });
       } catch (s3Err) {
         console.error("S3 vehicle search failed:", s3Err.message);

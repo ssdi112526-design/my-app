@@ -370,7 +370,9 @@ async function listRecoveryCases(companyId, { filter = "all", search = "", page 
   const uploadRows = await resolveUploadCaseCount(companyId);
   if (uploadRows > 0) {
     if (!isCompanySearchReady(companyId)) {
-      await warmCompanySearchCache(companyId);
+      warmCompanySearchCache(companyId).catch((err) => {
+        console.error("Background search warm failed:", err.message);
+      });
     }
 
     const safePage = Math.max(Number(page) || 1, 1);

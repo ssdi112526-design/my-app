@@ -238,12 +238,27 @@ export default function FindVehiclesResults() {
             : fetchMode === "phone"
               ? "mobileNumber"
               : "vehicleNumber";
-        const res = await repoCaseService.getCases(auth.token, {
-          search: fetchQuery,
-          type: apiType,
-          page: 1,
-          limit: SEARCH_PAGE_LIMIT,
-        });
+        const runSearch = () =>
+          repoCaseService.getCases(auth.token, {
+            search: fetchQuery,
+            type: apiType,
+            page: 1,
+            limit: SEARCH_PAGE_LIMIT,
+          });
+
+        let res;
+        try {
+          res = await runSearch();
+        } catch (firstErr) {
+          // Live Render often sleeps; one retry covers the cold start.
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          if (cancelled) return;
+          try {
+            res = await runSearch();
+          } catch (err) {
+            throw firstErr?.response ? firstErr : err;
+          }
+        }
         if (cancelled) return;
         const rawItems = getItems(res);
         const filtered =

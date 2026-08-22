@@ -17,11 +17,34 @@ const {
 } = require("../utils/excelNotifyContacts");
 
 const INDEX_CACHE_MS = Number(process.env.S3_INDEX_CACHE_MS || 30 * 60 * 1000);
+const SEARCH_CONCURRENCY = Math.max(1, Number(process.env.S3_SEARCH_CONCURRENCY || 2));
+const COMPANY_CACHE_MAX_ITEMS = Math.max(
+  1000,
+  Number(process.env.S3_COMPANY_CACHE_MAX_ITEMS || 80000)
+);
 /** Per-batch row payloads (warmed on upload). */
 const indexCache = new Map();
 /** Merged company search items — filter in RAM (~milliseconds). */
 const companyItemsCache = new Map();
 const warmingCompanies = new Set();
+
+async function mapWithConcurrency(items, concurrency, worker) {
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) return [];
+  const results = new Array(list.length);
+  let next = 0;
+  const run = async () => {
+    while (next < list.length) {
+      const i = next;
+      next += 1;
+      results[i] = await worker(list[i], i);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, list.length) }, () => run())
+  );
+  return results;
+}
 
 function escapeRegex(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -249,12 +272,10 @@ async function getCompanySearchItems(companyId) {
     .sort({ updatedAt: -1 })
     .lean();
 
-  const batchData = await Promise.all(
-    batches.map(async (batch) => {
-      const rows = await loadIndexRows(batch);
-      return { batch, rows: rows || [] };
-    })
-  );
+  const batchData = await mapWithConcurrency(batches, SEARCH_CONCURRENCY, async (batch) => {
+    const rows = await loadIndexRows(batch);
+    return { batch, rows: rows || [] };
+  });
 
   const allItems = [];
   for (const { batch, rows } of batchData) {
@@ -263,10 +284,12 @@ async function getCompanySearchItems(companyId) {
     }
   }
 
-  companyItemsCache.set(companyKey, {
-    items: allItems,
-    expiresAt: Date.now() + INDEX_CACHE_MS,
-  });
+  if (allItems.length <= COMPANY_CACHE_MAX_ITEMS) {
+    companyItemsCache.set(companyKey, {
+      items: allItems,
+      expiresAt: Date.now() + INDEX_CACHE_MS,
+    });
+  }
 
   return allItems;
 }
@@ -297,27 +320,25 @@ async function warmCompanySearchCache(companyId) {
       status: "completed",
     }).lean();
 
-    await Promise.all(
-      batches.map(async (batch) => {
-        const batchKey = String(batch._id);
-        if (indexCache.get(batchKey)?.rows?.length) return;
+    await mapWithConcurrency(batches, SEARCH_CONCURRENCY, async (batch) => {
+      const batchKey = String(batch._id);
+      if (indexCache.get(batchKey)?.rows?.length) return;
 
-        if (batch.s3SearchIndexKey) {
-          const rows = await loadSearchIndexFromS3(batch.s3SearchIndexKey);
-          if (rows?.length) {
-            indexCache.set(batchKey, {
-              rows,
-              expiresAt: Date.now() + INDEX_CACHE_MS,
-            });
-          }
-          return;
+      if (batch.s3SearchIndexKey) {
+        const rows = await loadSearchIndexFromS3(batch.s3SearchIndexKey);
+        if (rows?.length) {
+          indexCache.set(batchKey, {
+            rows,
+            expiresAt: Date.now() + INDEX_CACHE_MS,
+          });
         }
+        return;
+      }
 
-        if (batch.storedFilePath) {
-          await buildAndSaveSearchIndex(batch);
-        }
-      })
-    );
+      if (batch.storedFilePath) {
+        await buildAndSaveSearchIndex(batch);
+      }
+    });
 
     const items = await getCompanySearchItems(companyId);
     return { ready: true, count: items.length };
@@ -463,22 +484,56 @@ async function searchRowsInExcel(batch, options) {
 async function searchS3Cases(
   companyId,
   { search = "", type = "general", page = 1, limit = 50, hasVehicleNumber = false }
-) 
+)
 {
-  const allItems = await getCompanySearchItems(companyId);
-  const filtered = filterItems(allItems, { search, type, hasVehicleNumber });
-
   const safePage = Math.max(Number(page) || 1, 1);
   const safeLimit = Math.max(Number(limit) || 50, 1);
   const skip = (safePage - 1) * safeLimit;
-  const items = filtered.slice(skip, skip + safeLimit);
+  const filterOpts = { search, type, hasVehicleNumber };
+
+  const cached = companyItemsCache.get(String(companyId));
+  if (cached?.items && cached.expiresAt > Date.now()) {
+    const filtered = filterItems(cached.items, filterOpts);
+    return {
+      items: filtered.slice(skip, skip + safeLimit),
+      total: filtered.length,
+      page: safePage,
+      limit: safeLimit,
+      instant: true,
+      searchReady: true,
+    };
+  }
+
+  const cid = mongoose.Types.ObjectId.isValid(companyId)
+    ? new mongoose.Types.ObjectId(companyId)
+    : companyId;
+
+  const batches = await UploadBatch.find({
+    companyId: cid,
+    status: "completed",
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const matches = [];
+
+  await mapWithConcurrency(batches, SEARCH_CONCURRENCY, async (batch) => {
+    try {
+      const items = await getIndexItems(batch);
+      const filtered = filterItems(items, filterOpts);
+      if (filtered.length) matches.push(...filtered);
+    } catch (err) {
+      console.error("S3 batch search failed:", batch._id, err.message);
+    }
+  });
 
   return {
-    items,
-    total: filtered.length,
+    items: matches.slice(skip, skip + safeLimit),
+    total: matches.length,
     page: safePage,
     limit: safeLimit,
-    instant: Boolean(companyItemsCache.get(String(companyId))?.items),
+    instant: false,
+    searchReady: true,
   };
 }
 
