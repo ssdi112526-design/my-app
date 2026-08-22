@@ -32,6 +32,15 @@ function createRateLimiter({ windowMs, max, name }) {
   return function rateLimitMiddleware(req, res, next) {
     if (!isRateLimitEnabled()) return next();
 
+    // Progress polling hits GET /api/uploads/:id every 2s. Do not count those
+    // against the write cap (presign / complete / multipart).
+    if (
+      name === "upload" &&
+      (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS")
+    ) {
+      return next();
+    }
+
     const maxHits = envInt(
       name === "search"
         ? "SEARCH_RATE_LIMIT"
