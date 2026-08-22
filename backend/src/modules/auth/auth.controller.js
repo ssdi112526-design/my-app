@@ -273,6 +273,28 @@ function formatProfileUser(user, companyRecord = null) {
   };
 }
 
+module.exports.refresh = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized user.",
+      });
+    }
+
+    const token = signToken({
+      userId: user._id,
+      role: user.role,
+      companyId: user.companyId || null,
+    });
+
+    return ok(res, await buildAuthResponse(user, token), "Token refreshed");
+  } catch (e) {
+    next(e);
+  }
+};
+
 module.exports.getProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.userId).select("-passwordHash");

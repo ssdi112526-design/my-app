@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import GuestRoute from "../components/auth/GuestRoute";
 
 import Layout from "../components/layout/Layout";
 import ControlPanelGuard from "../components/auth/ControlPanelGuard";
@@ -78,15 +79,17 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicPageShell />}>
-        <Route path="/" element={<Login />} />
-        <Route path="/ssdi/login" element={<SsdiLogin />} />
-        <Route path="/repo-admin/login" element={<RepoAdminLogin />} />
-        <Route path="/repo-agent/login" element={<RepoAgentLogin />} />
+        <Route element={<GuestRoute />}>
+          <Route path="/" element={<Login />} />
+          <Route path="/ssdi/login" element={<SsdiLogin />} />
+          <Route path="/repo-admin/login" element={<RepoAdminLogin />} />
+          <Route path="/repo-agent/login" element={<RepoAgentLogin />} />
+          <Route path="/bank/login" element={<BankLogin />} />
+        </Route>
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/register" element={<ApkRegisterHub />} />
         <Route path="/register-company" element={<RegisterCompany />} />
         <Route path="/agent-register" element={<AgentRegister />} />
-        <Route path="/bank/login" element={<BankLogin />} />
         <Route path="/bank/register" element={<BankRegister />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/faqs" element={<FaqsPage />} />

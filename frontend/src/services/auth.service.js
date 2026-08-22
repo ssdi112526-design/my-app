@@ -21,6 +21,18 @@ export const authService = {
     return res.data;
   },
 
+  refreshSession: async (token) => {
+    const res = await api.post(
+      "/auth/refresh",
+      {},
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        skipAuthExpire: true,
+      }
+    );
+    return res.data?.data;
+  },
+
   getProfile: async (token) => {
     const res = await api.get("/auth/profile", {
       headers: { Authorization: `Bearer ${token}` },

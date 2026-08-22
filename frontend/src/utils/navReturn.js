@@ -1,6 +1,12 @@
 /** Default page after repo login (admin + agent). */
 export const DEFAULT_LANDING_PATH = "/find-vehicles";
 
+export function landingPathForRole(role) {
+  if (role === "SSDI_SUPER_ADMIN") return "/ssdi/dashboard";
+  if (role === "BANK_ADMIN" || role === "BANK_PERSON") return "/bank/dashboard";
+  return DEFAULT_LANDING_PATH;
+}
+
 /** Encode parent path for ?from= so back links return to the page that opened this screen. */
 export function withReturnPath(path, returnTo) {
   const parent = returnTo || DEFAULT_LANDING_PATH;

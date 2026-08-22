@@ -15,6 +15,7 @@ router.post("/repo-agent-login", controller.repoAgentLogin);
 router.post("/agent-register", controller.agentSelfRegister);
 router.post("/bootstrap-ssdi-admin", controller.bootstrapSSDIAdmin);
 
+router.post("/refresh", protect, controller.refresh);
 router.get("/profile", protect, controller.getProfile);
 router.patch("/profile", protect, controller.updateProfile);
 router.post(
